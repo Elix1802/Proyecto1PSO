@@ -29,7 +29,7 @@ void readFile(char* route, HashTableFreq* hashTableFreq) {
     return;
 }
 
-void HashTableToHeap(HashTableFreq* hashTableFreq, Node** heap) {
+void HashTableToHeap(HashTableFreq* hashTableFreq, HeapPriorityQueue* heap) {
     Node** nodes = getHashTableFreq(hashTableFreq);
     for (int i = 0; i < 256; i++) {
         if (nodes[i] != NULL) {
@@ -37,6 +37,47 @@ void HashTableToHeap(HashTableFreq* hashTableFreq, Node** heap) {
         }
     }
 }
+
+void generateCodes(Node* node, Dictionary* dictionary, char* code, int depth)
+{
+    if (node == NULL)
+        return;
+
+    
+    if (isLeaf(node))
+    {
+        code[depth] = '\0';
+
+        addDictionaryElement(
+            dictionary,
+            getCharacter(node),
+            code
+        );
+
+        return;
+    }
+
+    
+    code[depth] = '0';
+
+    generateCodes(
+        getLeftNode(node),
+        dictionary,
+        code,
+        depth + 1
+    );
+
+    
+    code[depth] = '1';
+
+    generateCodes(
+        getRightNode(node),
+        dictionary,
+        code,
+        depth + 1
+    );
+}
+
 
 int main() {
     /*
@@ -62,11 +103,15 @@ int main() {
     //destroyHashTableFreq(hashTableFreq);
 
     HashTableFreq * hashTableFreq = createHashTableFreq();
-    Node** heap = createHeapPriorityQueue();
+    HeapPriorityQueue* heap = createHeapPriorityQueue();
+    Dictionary* dictionary = createDictionary();
     readFile("books/002_Pride and Prejudice by Jane Austen (186807).txt", hashTableFreq);
     HashTableToHeap(hashTableFreq, heap);
     display(heap);
     convertHuffman(heap);
     display(heap);
+    generateCodes(getNodes(heap)[0], dictionary, (char*)malloc(256), 0);
+    printDictionaryValues(dictionary);
+
     return 0;
 }

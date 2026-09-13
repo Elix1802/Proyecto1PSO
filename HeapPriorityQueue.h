@@ -1,14 +1,15 @@
 #ifndef HEAP_H
 #define HEAP_H
 
-typedef struct Node Node;
+typedef struct HeapPriorityQueue HeapPriorityQueue;
 
 void swap(Node **a, Node **b);
-void addNodes();
-Node* pop(Node** heap);
-void display(Node** heap);
-void insert(Node** heap, Node** value);
+void addNodes(HeapPriorityQueue* heap);
+Node* pop(HeapPriorityQueue* heap);
+void display(HeapPriorityQueue* heap);
+void insert(HeapPriorityQueue* heap, Node** value);
 void convertHuffman();
-Node** createHeapPriorityQueue();
+HeapPriorityQueue* createHeapPriorityQueue();
+Node** getNodes(HeapPriorityQueue* heap);
 
 #endif

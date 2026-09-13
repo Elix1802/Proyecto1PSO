@@ -6,11 +6,16 @@
 
 #define MAX 256
 
+struct HeapPriorityQueue {
+    Node ** nodes;
+    int size;
+};
 
-int size = 0;
-
-Node** createHeapPriorityQueue() {
-    Node** heap = malloc(MAX * sizeof(Node*));
+HeapPriorityQueue* createHeapPriorityQueue() {
+    HeapPriorityQueue* heap = (HeapPriorityQueue*)malloc(sizeof(HeapPriorityQueue));
+    heap->nodes = (Node**)malloc(MAX * sizeof(Node*));
+    heap->size = 0;
+    
 
     return heap;
 }
@@ -23,12 +28,12 @@ void swap(Node **a, Node **b)
     *b = temp;
 }
 
-Node* pop(Node** heap) {
-    if (size == 0) return NULL;
+Node* pop(HeapPriorityQueue* heap) {
+    if (heap->size == 0) return NULL;
     
-    Node* root = heap[0];
-    heap[0] = heap[size - 1];
-    size--;
+    Node* root = heap->nodes[0];
+    heap->nodes[0] = heap->nodes[heap->size - 1];
+    heap->size--;
     
     int index = 0; 
     while (1) {
@@ -36,10 +41,10 @@ Node* pop(Node** heap) {
         int right = 2 * index + 2;
         int smallest = index;
 
-        if (left < size && getFreq(heap[left]) < getFreq(heap[smallest])) {
+        if (left < heap->size && getFreq(heap->nodes[left]) < getFreq(heap->nodes[smallest])) {
             smallest = left;
         }
-        if (right < size && getFreq(heap[right]) < getFreq(heap[smallest])) {
+        if (right < heap->size && getFreq(heap->nodes[right]) < getFreq(heap->nodes[smallest])) {
             smallest = right;
         }
         
@@ -47,28 +52,28 @@ Node* pop(Node** heap) {
         if (smallest == index) break;
 
         
-        swap(&heap[index], &heap[smallest]);
+        swap(&heap->nodes[index], &heap->nodes[smallest]);
         index = smallest;
     }
     return root;
 }
 
-void insert(Node** heap, Node** value)
+void insert(HeapPriorityQueue* heap, Node** value)
 {
-    heap[size] = *value;
-    int index = size;
-    size++;
+    heap->nodes[heap->size] = *value;
+    int index = heap->size;
+    heap->size++;
 
-    while (index > 0 && getFreq(heap[(index - 1) / 2]) > getFreq(heap[index]))
+    while (index > 0 && getFreq(heap->nodes[(index - 1) / 2]) > getFreq(heap->nodes[index]))
     {
-        swap(&heap[index], &heap[(index - 1) / 2]);
+        swap(&heap->nodes[index], &heap->nodes[(index - 1) / 2]);
         index = (index - 1) / 2;
     }
     return;
 }
 
-void addNodes(Node** heap){
-    if (size <= 1 ){
+void addNodes(HeapPriorityQueue* heap){
+    if (heap->size <= 1 ){
         printf("Tamaño del heap insuficiente\n");
         return;
     }
@@ -82,18 +87,22 @@ void addNodes(Node** heap){
     return;
 }
 
-void convertHuffman(Node** heap) {
-    while (size > 1) {
+void convertHuffman(HeapPriorityQueue* heap) {
+    while (heap->size > 1) {
         addNodes(heap);
     }
     return;
 }
 
-void display(Node** heap)
+void display(HeapPriorityQueue* heap)
 {
-    for (int i = 0; i < size; i++)
-    printf("%c : %.10f\n", getCharacter(heap[i]), getFreq(heap[i]));
+    for (int i = 0; i < heap->size; i++)
+    printf("%c : %.10f\n", getCharacter(heap->nodes[i]), getFreq(heap->nodes[i]));
     printf("\n");
+}
+
+Node** getNodes(HeapPriorityQueue* heap) {
+    return heap->nodes;
 }
 
 /*
