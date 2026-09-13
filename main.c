@@ -1,6 +1,7 @@
 #include "Node.h"
 #include "HeapPriorityQueue.h"
 #include "HashTableFreq.h"
+#include "Dictionary.h"
 #include <stdlib.h>
 #include <stdio.h>
 

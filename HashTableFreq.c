@@ -51,6 +51,7 @@ void addHashTableFreqNode(HashTableFreq * self, Node * node){
         int index = hashFunction(getCharacter(node));
         if(self->nodes[index] == NULL) {
             self->nodes[index] = node;
+            self->total++;
         } else {
             addRep(self->nodes[index]);
             destroyNode(node);
@@ -100,3 +101,10 @@ void printHashTableFreq(HashTableFreq * self) {
     }
 }
 
+int totalNodesHashTable(HashTableFreq * self) {
+    if(self!=NULL) {
+        return self->total;
+    }
+
+    return -1;
+}
