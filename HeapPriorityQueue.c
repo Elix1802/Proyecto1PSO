@@ -1,12 +1,19 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include "Node.h"
 
 #include "HeapPriorityQueue.h"
 
 #define MAX 256
 
-Node* heap[MAX];
+
 int size = 0;
+
+Node** createHeapPriorityQueue() {
+    Node** heap = malloc(MAX * sizeof(Node*));
+
+    return heap;
+}
 
 
 void swap(Node **a, Node **b)
@@ -16,7 +23,7 @@ void swap(Node **a, Node **b)
     *b = temp;
 }
 
-Node* pop() {
+Node* pop(Node** heap) {
     if (size == 0) return NULL;
     
     Node* root = heap[0];
@@ -46,7 +53,7 @@ Node* pop() {
     return root;
 }
 
-void insert(Node** value)
+void insert(Node** heap, Node** value)
 {
     heap[size] = *value;
     int index = size;
@@ -57,31 +64,32 @@ void insert(Node** value)
         swap(&heap[index], &heap[(index - 1) / 2]);
         index = (index - 1) / 2;
     }
+    return;
 }
 
-void addNodes(){
+void addNodes(Node** heap){
     if (size <= 1 ){
         printf("Tamaño del heap insuficiente\n");
         return;
     }
-    Node* left = pop();
-    Node* right = pop();
+    Node* left = pop(heap);
+    Node* right = pop(heap);
     Node* newNode = createNode('$');
     sumFreq(newNode, getFreq(left), getFreq(right));
     addLeftNode(newNode, left);
     addRightNode(newNode, right);
-    insert(&newNode);
+    insert(heap, &newNode);
     return;
 }
 
-void convertHuffman(){
+void convertHuffman(Node** heap) {
     while (size > 1) {
-        addNodes();
+        addNodes(heap);
     }
     return;
 }
 
-void display()
+void display(Node** heap)
 {
     for (int i = 0; i < size; i++)
     printf("%c : %f \n", getCharacter(heap[i]), getFreq(heap[i]));

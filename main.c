@@ -27,6 +27,15 @@ void readFile(char* route, HashTableFreq* hashTableFreq) {
     return;
 }
 
+void HashTableToHeap(HashTableFreq* hashTableFreq, Node** heap) {
+    Node** nodes = getHashTableFreq(hashTableFreq);
+    for (int i = 0; i < 256; i++) {
+        if (nodes[i] != NULL) {
+            insert(heap, &nodes[i]);
+        }
+    }
+}
+
 int main() {
     /*
     Node * node = createNode('z');
@@ -51,6 +60,11 @@ int main() {
     //destroyHashTableFreq(hashTableFreq);
 
     HashTableFreq * hashTableFreq = createHashTableFreq();
+    Node** heap = createHeapPriorityQueue();
     readFile("books/002_Pride and Prejudice by Jane Austen (186807).txt", hashTableFreq);
+    HashTableToHeap(hashTableFreq, heap);
+    display(heap);
+    convertHuffman(heap);
+    display(heap);
     return 0;
 }

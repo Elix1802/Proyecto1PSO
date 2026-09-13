@@ -5,10 +5,10 @@ typedef struct Node Node;
 
 void swap(Node **a, Node **b);
 void addNodes();
-Node* pop();
-void display();
-void insert(Node** value);
+Node* pop(Node** heap);
+void display(Node** heap);
+void insert(Node** heap, Node** value);
 void convertHuffman();
-
+Node** createHeapPriorityQueue();
 
 #endif
