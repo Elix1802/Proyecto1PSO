@@ -60,13 +60,20 @@ void addNodes(){
     Node* left = pop();
     Node* right = pop();
     Node* newNode = createNode('$');
+    float totalFreq = left->freq + right->freq;
+    newNode->freq = totalFreq;
     addLeftNode(newNode, left);
     addRightNode(newNode, right);
     insert(&newNode);
     return;
 }
 
-
+void convertHuffman(){
+    while (size > 1) {
+        addNodes();
+    }
+    return;
+}
 
 void display()
 {
@@ -91,14 +98,15 @@ int main()
 
     display();
     
-    addNodes();
+    convertHuffman();
 
     display();
 
+    /*
     addNodes();
 
     display();
-    
+    */
     return 0;
     
 }
