@@ -51,6 +51,7 @@ void addHashTableFreqNode(HashTableFreq * self, Node * node){
         int index = hashFunction(getCharacter(node));
         if(self->nodes[index] == NULL) {
             self->nodes[index] = node;
+            addRep(node);
             self->total++;
         } else {
             addRep(self->nodes[index]);
@@ -94,7 +95,7 @@ void printHashTableFreq(HashTableFreq * self) {
     if(self != NULL) {
         for(int i = 0; i < ARRAY_SIZE; i++) {
             if(self->nodes[i] != NULL) {
-                printf("%c : %.10lf\n", getCharacter(self->nodes[i]), getFreq(self->nodes[i]));
+                printf("%c : %.10f\n", getCharacter(self->nodes[i]), getFreq(self->nodes[i]));
             }
         }
         printf("\n");

@@ -10,7 +10,7 @@ void destroyNode(Node* self);
 void addLeftNode(Node* self, Node* node);
 void addRightNode(Node* self, Node* node);
 void addRep(Node* self);
-void sumFreq(Node* self, float freqOne, float freqTwo);
+void sumFreq(Node* self,  double freqOne, double freqTwo);
 void finalFreq(Node * self, int total);
 
 // Getters

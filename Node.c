@@ -60,7 +60,7 @@ void finalFreq(Node * self, int total) {
 
 
 
-void sumFreq(Node * self, double freqOne, double freqTwo) {
+void sumFreq(Node * self,  double freqOne,  double freqTwo) {
     self->isFather = 1;
     if(self != NULL) {
         self->freq = freqOne + freqTwo;

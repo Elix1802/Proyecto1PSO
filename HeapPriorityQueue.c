@@ -92,7 +92,7 @@ void convertHuffman(Node** heap) {
 void display(Node** heap)
 {
     for (int i = 0; i < size; i++)
-    printf("%c : %f \n", getCharacter(heap[i]), getFreq(heap[i]));
+    printf("%c : %.10f\n", getCharacter(heap[i]), getFreq(heap[i]));
     printf("\n");
 }
 
