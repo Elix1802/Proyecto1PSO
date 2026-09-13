@@ -4,16 +4,40 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+void readFile(char* route, HashTableFreq* hashTableFreq) {
+    FILE *archivo = fopen(route, "r");
+
+    if (archivo == NULL) {
+        printf("Error al abrir el archivo.\n");
+        return;
+    }
+
+    int cant = 0;
+    int c;
+    while ((c = fgetc(archivo)) != EOF) {
+        putchar(c);
+        addHashTableFreqNode(hashTableFreq, createNode(c));
+        cant++;
+    }
+
+
+    fclose(archivo);
+    updateHashTableFreqNode(hashTableFreq, cant);
+    printf("\nCantidad de caracteres: %d\n", cant);
+    return;
+}
+
 int main() {
+    /*
     Node * node = createNode('z');
     Node * leftNode = createNode('a');
     Node * rightNode = createNode('g');
     HashTableFreq * hashTableFreq = createHashTableFreq();
-    addHashTableFreqNode(hashTableFreq, node, 100);
-    addHashTableFreqNode(hashTableFreq, leftNode, 150);
-    addHashTableFreqNode(hashTableFreq, rightNode, 150);
+    addHashTableFreqNode(hashTableFreq, node);
+    addHashTableFreqNode(hashTableFreq, leftNode);
+    addHashTableFreqNode(hashTableFreq, rightNode);
     printHashTableFreq(hashTableFreq);   
-
+*/
 
 
     //addRep(node, 12);
@@ -23,24 +47,10 @@ int main() {
     //Node * left = getLeftNode(node);
     //printf("Caracter: %c\n", getCharacter(left));
 
-    Node * node1 = createNode('a');
-    Node * node2 = createNode('b');
-    Node * node3 = createNode('c');
-    addRep(node1, 100);
-    addRep(node2, 150);
-    addRep(node3, 200);
 
-    insert(&node2);
-    insert(&node1);
-    insert(&node3);
+    //destroyHashTableFreq(hashTableFreq);
 
-    display();
-    
-    convertHuffman();
-
-    display();
-
-
-    destroyHashTableFreq(hashTableFreq);
+    HashTableFreq * hashTableFreq = createHashTableFreq();
+    readFile("books/002_Pride and Prejudice by Jane Austen (186807).txt", hashTableFreq);
     return 0;
 }
