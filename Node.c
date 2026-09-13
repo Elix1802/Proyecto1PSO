@@ -69,6 +69,16 @@ Node * getRightNode(Node * self) {
     return NULL;
 }
 
+int isLeaf(Node * self) {
+    if(self!=NULL) {
+        if(self->leftNode == NULL && self->rightNode == NULL) {
+            return 1;
+        }
+        return 0;
+    }
+    return -1;
+}
+
 float getFreq(Node * self) {
     if(self != NULL) {
         return self->freq;

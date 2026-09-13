@@ -15,6 +15,7 @@ void addRep(Node* self, int total);
 Node* getLeftNode(Node* self);
 char getCharacter(Node* self);
 Node* getRightNode(Node* self);
+int isLeaf(Node * self);
 float getFreq(Node* self);
 
 #endif
