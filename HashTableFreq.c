@@ -46,10 +46,12 @@ void destroyHashTableFreq(HashTableFreq * self) {
 }
 
 
-void addHashTableFreqNode(HashTableFreq * self, Node * node){
+void addHashTableFreqNode(HashTableFreq * self, Node * node, int total){
     if(self != NULL) {
         int index = hashFunction(getCharacter(node));
-        self->nodes[index] = node;
+        if(self->nodes[index] == NULL) self->nodes[index] = node;
+        else addRep(self->nodes[index], total);
+        
     }
 }
 
