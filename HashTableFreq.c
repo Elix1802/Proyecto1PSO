@@ -81,7 +81,7 @@ void printHashTableFreq(HashTableFreq * self) {
                 printf("%c ", getCharacter(self->nodes[i]));
             }
         }
-        print("\n");
+        printf("\n");
     }
 }
 
