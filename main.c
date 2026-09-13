@@ -1,6 +1,7 @@
 #include "Node.h"
 #include "HeapPriorityQueue.h"
 #include "HashTableFreq.h"
+#include "Dictionary.h"
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -15,7 +16,7 @@ void readFile(char* route, HashTableFreq* hashTableFreq) {
     int cant = 0;
     int c;
     while ((c = fgetc(archivo)) != EOF) {
-        putchar(c);
+        //putchar(c);
         addHashTableFreqNode(hashTableFreq, createNode(c));
         cant++;
     }
@@ -23,6 +24,7 @@ void readFile(char* route, HashTableFreq* hashTableFreq) {
 
     fclose(archivo);
     updateHashTableFreqNode(hashTableFreq, cant);
+    //printHashTableFreq(hashTableFreq);
     printf("\nCantidad de caracteres: %d\n", cant);
     return;
 }
