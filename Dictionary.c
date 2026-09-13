@@ -14,7 +14,7 @@ struct Dictionary {
 };
 
 //Aux
-int hashFunction(char c) {
+int hashFunctionD(char c) {
     unsigned char caracter = (unsigned char) c;
     return caracter % DIC_SIZE;
 }
@@ -63,7 +63,7 @@ void addDictionaryElement(Dictionary * self, char c, char * value){
 
 char * getDictionaryValue(Dictionary * self, char c) {
     if(self != NULL) {
-        int index = hashFunction(c);
+        int index = hashFunctionD(c);
         return self->values[index]->value;
     }
 
