@@ -55,7 +55,7 @@ void addDictionaryElement(Dictionary * self, char c, char * value){
         }
         strcpy(keyValue->value, value);
 
-        int index = hashFunction(c);
+        int index = hashFunctionD(c);
         self->values[index] = keyValue;
     } 
 }
