@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include "Node.h"
-#include "Node.c"
+
 #include "HeapPriorityQueue.h"
 
 #define MAX 256
@@ -16,25 +16,32 @@ void swap(Node **a, Node **b)
     *b = temp;
 }
 
-Node* pop(){
+Node* pop() {
     if (size == 0) return NULL;
+    
     Node* root = heap[0];
     heap[0] = heap[size - 1];
     size--;
+    
+    int index = 0; 
     while (1) {
-        int left = 2 * 0 + 1;
-        int right = 2 * 0 + 2;
-        int smallest = 0;
+        int left = 2 * index + 1;
+        int right = 2 * index + 2;
+        int smallest = index;
 
-        if (left < size && heap[left]->freq < heap[smallest]->freq) {
+        if (left < size && getFreq(heap[left]) < getFreq(heap[smallest])) {
             smallest = left;
         }
-        if (right < size && heap[right]->freq < heap[smallest]->freq) {
+        if (right < size && getFreq(heap[right]) < getFreq(heap[smallest])) {
             smallest = right;
         }
-        if (smallest == 0) break;
+        
+        
+        if (smallest == index) break;
 
-        swap(&heap[0], &heap[smallest]);
+        
+        swap(&heap[index], &heap[smallest]);
+        index = smallest;
     }
     return root;
 }
@@ -45,7 +52,7 @@ void insert(Node** value)
     int index = size;
     size++;
 
-    while (index > 0 && heap[(index - 1) / 2]->freq > heap[index]->freq)
+    while (index > 0 && getFreq(heap[(index - 1) / 2]) > getFreq(heap[index]))
     {
         swap(&heap[index], &heap[(index - 1) / 2]);
         index = (index - 1) / 2;
@@ -60,8 +67,7 @@ void addNodes(){
     Node* left = pop();
     Node* right = pop();
     Node* newNode = createNode('$');
-    float totalFreq = left->freq + right->freq;
-    newNode->freq = totalFreq;
+    sumFreq(newNode, getFreq(left), getFreq(right));
     addLeftNode(newNode, left);
     addRightNode(newNode, right);
     insert(&newNode);
@@ -78,11 +84,11 @@ void convertHuffman(){
 void display()
 {
     for (int i = 0; i < size; i++)
-    printf("%c : %f \n", heap[i]->character, heap[i]->freq);
+    printf("%c : %f \n", getCharacter(heap[i]), getFreq(heap[i]));
     printf("\n");
 }
 
-
+/*
 int main()
 {
     Node * node1 = createNode('a');
@@ -102,11 +108,12 @@ int main()
 
     display();
 
-    /*
+    
     addNodes();
 
     display();
-    */
+    
     return 0;
     
 }
+*/

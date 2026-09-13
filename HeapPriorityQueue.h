@@ -7,7 +7,8 @@ void swap(Node **a, Node **b);
 void addNodes();
 Node* pop();
 void display();
-
+void insert(Node** value);
+void convertHuffman();
 
 
 #endif
