@@ -9,9 +9,9 @@ int main() {
     Node * leftNode = createNode('a');
     Node * rightNode = createNode('g');
     HashTableFreq * hashTableFreq = createHashTableFreq();
-    addHashTableFreqNode(hashTableFreq, node);
-    addHashTableFreqNode(hashTableFreq, leftNode);
-    addHashTableFreqNode(hashTableFreq, rightNode);
+    addHashTableFreqNode(hashTableFreq, node, 100);
+    addHashTableFreqNode(hashTableFreq, leftNode, 150);
+    addHashTableFreqNode(hashTableFreq, rightNode, 150);
     printHashTableFreq(hashTableFreq);   
 
 
