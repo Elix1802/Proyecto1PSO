@@ -10,12 +10,15 @@ void destroyNode(Node* self);
 void addLeftNode(Node* self, Node* node);
 void addRightNode(Node* self, Node* node);
 void addRep(Node* self, int total);
+void sumFreq(Node* self, float freqOne, float freqTwo);
+
 
 // Getters
 Node* getLeftNode(Node* self);
 char getCharacter(Node* self);
 Node* getRightNode(Node* self);
 int isLeaf(Node * self);
+
 float getFreq(Node* self);
 
 #endif

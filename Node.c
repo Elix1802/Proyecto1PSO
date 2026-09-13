@@ -6,6 +6,7 @@ struct Node {
     char character;
     float freq;
     int rep;
+    int isFather;
     struct Node* leftNode;
     struct Node* rightNode;
 };
@@ -16,6 +17,7 @@ struct Node * createNode(char name) {
     node->character = name;
     node->rep = 0;
     node->freq = 0.0;
+    node->isFather = 0;
     node->leftNode = NULL;
     node->rightNode = NULL;
 
@@ -31,6 +33,7 @@ void destroyNode(Node * self) {
 //Setters
 void addLeftNode(Node * self, Node * leftNode){
     if(self != NULL) {
+        self->isFather = 1;
         self->leftNode = leftNode;
     }
 
@@ -38,6 +41,7 @@ void addLeftNode(Node * self, Node * leftNode){
 
 void addRightNode(Node * self, Node * rightNode) {
     if(self != NULL) {
+        self->isFather = 1;
         self->rightNode = rightNode;
     }
 }
@@ -49,6 +53,12 @@ void addRep(Node * self, int total) {
     }
 }
 
+void sumFreq(Node * self, float freqOne, float freqTwo) {
+    self->isFather = 1;
+    if(self != NULL) {
+        self->freq = freqOne + freqTwo;
+    }
+}
 //Getters
 char getCharacter(Node* self) {
     if(self != NULL) {
