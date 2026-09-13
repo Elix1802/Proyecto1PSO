@@ -19,6 +19,6 @@ char getCharacter(Node* self);
 Node* getRightNode(Node* self);
 int isLeaf(Node * self);
 
-float getFreq(Node* self);
+double getFreq(Node* self);
 
 #endif

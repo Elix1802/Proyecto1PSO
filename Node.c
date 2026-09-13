@@ -4,7 +4,7 @@
 
 struct Node {
     char character;
-    float freq;
+    double freq;
     int rep;
     int isFather;
     struct Node* leftNode;
@@ -54,13 +54,13 @@ void addRep(Node * self) {
 
 void finalFreq(Node * self, int total) {
     if(self != NULL) {
-        self->freq = (float)self->rep / total;
+        self->freq = (double)self->rep / total;
     }
 }
 
 
 
-void sumFreq(Node * self, float freqOne, float freqTwo) {
+void sumFreq(Node * self, double freqOne, double freqTwo) {
     self->isFather = 1;
     if(self != NULL) {
         self->freq = freqOne + freqTwo;
@@ -96,7 +96,7 @@ int isLeaf(Node * self) {
     return -1;
 }
 
-float getFreq(Node * self) {
+double getFreq(Node * self) {
     if(self != NULL) {
         return self->freq;
     }

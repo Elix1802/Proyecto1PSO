@@ -94,7 +94,7 @@ void printHashTableFreq(HashTableFreq * self) {
     if(self != NULL) {
         for(int i = 0; i < ARRAY_SIZE; i++) {
             if(self->nodes[i] != NULL) {
-                printf("%c : %f\n", getCharacter(self->nodes[i]), getFreq(self->nodes[i]));
+                printf("%c : %.10lf\n", getCharacter(self->nodes[i]), getFreq(self->nodes[i]));
             }
         }
         printf("\n");
