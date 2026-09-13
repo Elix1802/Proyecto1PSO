@@ -46,12 +46,19 @@ void addRightNode(Node * self, Node * rightNode) {
     }
 }
 
-void addRep(Node * self, int total) {
+void addRep(Node * self) {
     if(self != NULL) {
         self->rep++;
-        self->freq = (float)self->rep/total;
     }
 }
+
+void finalFreq(Node * self, int total) {
+    if(self != NULL) {
+        self->freq = (float)self->rep / total;
+    }
+}
+
+
 
 void sumFreq(Node * self, float freqOne, float freqTwo) {
     self->isFather = 1;

@@ -46,19 +46,28 @@ void destroyHashTableFreq(HashTableFreq * self) {
 }
 
 
-void addHashTableFreqNode(HashTableFreq * self, Node * node, int total){
+void addHashTableFreqNode(HashTableFreq * self, Node * node){
     if(self != NULL) {
         int index = hashFunction(getCharacter(node));
         if(self->nodes[index] == NULL) {
             self->nodes[index] = node;
         } else {
-            addRep(self->nodes[index], total);
+            addRep(self->nodes[index]);
             destroyNode(node);
         };
         
     }
 }
 
+void updateHashTableFreqNode(HashTableFreq * self, int total) {
+    if(self != NULL) {
+        for(int i = 0; i < ARRAY_SIZE; i++) {
+            if(self->nodes[i] != NULL) {
+                finalFreq(self->nodes[i], total);
+            }
+        }
+    }
+}
 
 //getters
 /**

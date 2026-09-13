@@ -8,7 +8,8 @@ HashTableFreq * createHashTableFreq();
 void destroyHashTableFreq(HashTableFreq * self);
 
 //Setters
-void addHashTableFreqNode(HashTableFreq * self, Node * node, int total);
+void addHashTableFreqNode(HashTableFreq * self, Node * node);
+void updateHashTableFreqNode(HashTableFreq * self, int total);
 
 //getters
 Node ** getHashTableFreq(HashTableFreq * self);
