@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "Node.h"
 #include "Node.c"
+#include "HeapPriorityQueue.h"
 
 #define MAX 256
 
@@ -13,6 +14,29 @@ void swap(Node **a, Node **b)
     Node *temp = *a;
     *a = *b;
     *b = temp;
+}
+
+Node* pop(){
+    if (size == 0) return NULL;
+    Node* root = heap[0];
+    heap[0] = heap[size - 1];
+    size--;
+    while (1) {
+        int left = 2 * 0 + 1;
+        int right = 2 * 0 + 2;
+        int smallest = 0;
+
+        if (left < size && heap[left]->freq < heap[smallest]->freq) {
+            smallest = left;
+        }
+        if (right < size && heap[right]->freq < heap[smallest]->freq) {
+            smallest = right;
+        }
+        if (smallest == 0) break;
+
+        swap(&heap[0], &heap[smallest]);
+    }
+    return root;
 }
 
 void insert(Node** value)
@@ -28,28 +52,53 @@ void insert(Node** value)
     }
 }
 
+void addNodes(){
+    if (size <= 1 ){
+        printf("Tamaño del heap insuficiente\n");
+        return;
+    }
+    Node* left = pop();
+    Node* right = pop();
+    Node* newNode = createNode('$');
+    addLeftNode(newNode, left);
+    addRightNode(newNode, right);
+    insert(&newNode);
+    return;
+}
+
+
 
 void display()
 {
     for (int i = 0; i < size; i++)
-        printf("%f ", heap[i]->freq );
+    printf("%c : %f \n", heap[i]->character, heap[i]->freq);
     printf("\n");
 }
 
+
 int main()
 {
-    Node * node = createNode('a');
+    Node * node1 = createNode('a');
     Node * node2 = createNode('b');
-    addRep(node, 100);
-    addRep(node2, 200);
-    
+    Node * node3 = createNode('c');
+    addRep(node1, 100);
+    addRep(node2, 150);
+    addRep(node3, 200);
 
     insert(&node2);
-    insert(&node);
-    
-    
+    insert(&node1);
+    insert(&node3);
 
     display();
+    
+    addNodes();
+
+    display();
+
+    addNodes();
+
+    display();
+    
     return 0;
     
 }
