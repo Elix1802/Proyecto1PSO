@@ -16,7 +16,7 @@ void readFile(char* route, HashTableFreq* hashTableFreq) {
     int cant = 0;
     int c;
     while ((c = fgetc(archivo)) != EOF) {
-        //putchar(c);
+        putchar(c);
         addHashTableFreqNode(hashTableFreq, createNode(c));
         cant++;
     }
@@ -87,7 +87,7 @@ void huffmanToText(char* route, HeapPriorityQueue* heap){
         return;
     }
 
-    char c;
+    int c;
     while ((c = fgetc(archivo)) != EOF) {        
         if (c == '0') {
             root = getLeftNode(root);
