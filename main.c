@@ -79,27 +79,29 @@ void generateCodes(Node* node, Dictionary* dictionary, char* code, int depth)
 }
 
 void huffmanToText(char* route, HeapPriorityQueue* heap){
-    FILE *archivo = fopen(route, "r");
+    FILE *archivoHuffman = fopen(route, "r");
+    FILE *archivoCambiado = fopen("books/Descomprimido.txt", "w");
     Node* root = getRoot(heap);
     
-    if (archivo == NULL) {
+    if (archivoHuffman == NULL) {
         printf("Error al abrir el archivo.\n");
         return;
     }
 
     int c;
-    while ((c = fgetc(archivo)) != EOF) {        
+    while ((c = fgetc(archivoHuffman)) != EOF) {        
         if (c == '0') {
             root = getLeftNode(root);
         } else if (c == '1') {
             root = getRightNode(root);
         }
         if (isLeaf(root)) {
-            printf("%c", getCharacter(root));
+            fputc(getCharacter(root), archivoCambiado);
             root = getRoot(heap);
         }
     }
-    fclose(archivo);
+    fclose(archivoHuffman);
+    fclose(archivoCambiado);
 }
 
 int main() {
