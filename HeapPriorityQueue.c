@@ -105,6 +105,11 @@ Node** getNodes(HeapPriorityQueue* heap) {
     return heap->nodes;
 }
 
+Node* getRoot(HeapPriorityQueue* heap) {
+    if (heap->size == 0) return NULL;
+    return heap->nodes[0];
+}
+
 /*
 int main()
 {

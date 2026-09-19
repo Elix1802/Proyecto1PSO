@@ -78,6 +78,29 @@ void generateCodes(Node* node, Dictionary* dictionary, char* code, int depth)
     );
 }
 
+void huffmanToText(char* route, HeapPriorityQueue* heap){
+    FILE *archivo = fopen(route, "r");
+    Node* root = getRoot(heap);
+    
+    if (archivo == NULL) {
+        printf("Error al abrir el archivo.\n");
+        return;
+    }
+
+    char c;
+    while ((c = fgetc(archivo)) != EOF) {        
+        if (c == '0') {
+            root = getLeftNode(root);
+        } else if (c == '1') {
+            root = getRightNode(root);
+        }
+        if (isLeaf(root)) {
+            printf("%c", getCharacter(root));
+            root = getRoot(heap);
+        }
+    }
+    fclose(archivo);
+}
 
 int main() {
     /*
@@ -112,6 +135,8 @@ int main() {
     display(heap);
     generateCodes(getNodes(heap)[0], dictionary, (char*)malloc(256), 0);
     printDictionaryValues(dictionary);
+
+    huffmanToText("books/Corán.txt", heap);
 
     return 0;
 }

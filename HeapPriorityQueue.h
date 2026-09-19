@@ -11,5 +11,6 @@ void insert(HeapPriorityQueue* heap, Node** value);
 void convertHuffman();
 HeapPriorityQueue* createHeapPriorityQueue();
 Node** getNodes(HeapPriorityQueue* heap);
+Node* getRoot(HeapPriorityQueue* heap);
 
 #endif
