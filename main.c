@@ -225,7 +225,23 @@ void generateCodes(Node *node, Dictionary *dictionary, char *code, int depth)
 void huffmanToText(char* route, HeapPriorityQueue* heap)
 {
     FILE *archivoHuffmanBinario = fopen(route, "rb");
-    FILE *archivoCambiado = fopen("descompressed/Descomprimido.txt", "w");
+
+    char *folderName = "descompressed";
+    mkdir(folderName, 0777);
+
+    char *delimitadorCarpeta = strchr(route, '/');
+    char *fileName = strdup(delimitadorCarpeta ? delimitadorCarpeta + 1 : route);
+
+    char *delimitadorFormato = strrchr(fileName, '.');
+    if (delimitadorFormato) {
+        *delimitadorFormato = '\0';
+    }
+    char routeFile[1024];
+    //printf("%s", fileName);
+
+    snprintf(routeFile, sizeof(routeFile), "%s/%s.txt", folderName, fileName);
+
+    FILE *archivoCambiado = fopen(routeFile, "w");
 
     if (archivoHuffmanBinario == NULL || archivoCambiado == NULL)
     {
@@ -300,6 +316,11 @@ int main()
 
     
     huffmanToText("compressed/001_Moby Dick; Or, The Whale by Herman Melville (19082.bin", heap);
+
+    HashResultado resultado = obtenerHashArchivo("books/001_Moby Dick; Or, The Whale by Herman Melville (19082.txt");
+    printf("Hash MD5 del archivo original: %s\n", resultado.hex);
+    HashResultado resultadoBinario = obtenerHashArchivo("descompressed/Descomprimido.txt");
+    printf("Hash MD5 del archivo comprimido: %s\n", resultadoBinario.hex);
 
     return 0;
 }
