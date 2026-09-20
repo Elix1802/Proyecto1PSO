@@ -12,6 +12,7 @@
 // -------------------------------------------------------------------
 
 struct BinaryHeader {
+    char fileName[128];
     char md5[33];
     int originalSize;
     double frecuencias[256];
