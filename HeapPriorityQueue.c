@@ -110,6 +110,16 @@ Node* getRoot(HeapPriorityQueue* heap) {
     return heap->nodes[0];
 }
 
+void destroyHeapPriorityQueue(HeapPriorityQueue* heap) {
+    if (heap != NULL) {
+        for (int i = 0; i < heap->size; i++) {
+            destroyTree(heap->nodes[i]);
+        }
+        free(heap->nodes);
+        free(heap);
+    }
+}
+
 /*
 int main()
 {

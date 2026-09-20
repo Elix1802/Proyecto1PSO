@@ -43,6 +43,14 @@ void destroyNode(Node * self) {
     }
 }
 
+void destroyTree(Node * self) {
+    if(self != NULL) {
+        destroyTree(self->leftNode);
+        destroyTree(self->rightNode);
+        free(self);
+    }
+}
+
 //Setters
 void addLeftNode(Node * self, Node * leftNode){
     if(self != NULL) {

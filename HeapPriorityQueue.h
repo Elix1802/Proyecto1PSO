@@ -3,6 +3,7 @@
 
 typedef struct HeapPriorityQueue HeapPriorityQueue;
 
+void destroyHeapPriorityQueue(HeapPriorityQueue* heap);
 void swap(Node **a, Node **b);
 void addNodes(HeapPriorityQueue* heap);
 Node* pop(HeapPriorityQueue* heap);

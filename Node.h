@@ -7,6 +7,7 @@ Node* createNode(char name);
 Node* createNodeFreq(char name, double freq);
 
 void destroyNode(Node* self);
+void destroyTree(Node * self);
 
 // Setters
 void addLeftNode(Node* self, Node* node);
