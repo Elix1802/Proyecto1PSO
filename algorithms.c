@@ -113,7 +113,6 @@ void writeFileEncrypted(char *route, HashTableFreq *hashTableFreq, Dictionary *d
     char folderName[1024];
     char *folderNamePtr = "compressed";
     snprintf(folderName, sizeof(folderName), "%s/%s", selected_directoryA, folderNamePtr);
-    printf("AAAAAA%sAAAAAAAA", folderName);
     mkdir(folderName, 0777);
 
 
@@ -126,7 +125,6 @@ void writeFileEncrypted(char *route, HashTableFreq *hashTableFreq, Dictionary *d
         *delimitadorFormato = '\0';
     }
     char routeFile[1024];
-    printf("OLALALLA%s H", fileName);
 
     snprintf(routeFile, sizeof(routeFile), "%s/%s.bin", folderName, fileName);
 
@@ -225,7 +223,6 @@ void huffmanToText(char* route)
     char folderName[1024];
     char *folderNamePtr = "decompressed";
     snprintf(folderName, sizeof(folderName), "%s/%s", selected_directoryAD, folderNamePtr);
-    printf("BBBBBBB%sBBBBBBBBBB", folderName);
     mkdir(folderName, 0777);
 
     char *delimitadorCarpeta = strrchr(route, '/');
@@ -236,7 +233,6 @@ void huffmanToText(char* route)
         *delimitadorFormato = '\0';
     }
     char routeFile[1024];
-    printf("CCCCCCCC%s CCCCCCC", fileName);
 
     snprintf(routeFile, sizeof(routeFile), "%s/%s.txt", folderName, fileName);
 
