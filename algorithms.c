@@ -14,6 +14,8 @@
 
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <time.h>
+
 
 static char *selected_directoryA = NULL;
 static char *selected_directoryAD = NULL;
@@ -314,7 +316,8 @@ StatRecord* compressAllFiles(char *selected_directory) {
     record->decompAcceleration = 0.0;
     record->decompress_time_s = 0.0;
     record->method = "Basic";
-
+    struct timespec start, end;
+    clock_gettime(CLOCK_MONOTONIC, &start);
     selected_directoryA = selected_directory;
     DIR * dir =  opendir(selected_directory);
 
@@ -341,7 +344,7 @@ StatRecord* compressAllFiles(char *selected_directory) {
         encryptFiles(folderFileName);
         i++;
     }
-
+    clock_gettime(CLOCK_MONOTONIC, &end);
 }
 
 void decompressAllFiles(char *selected_directory) {
