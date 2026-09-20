@@ -130,6 +130,8 @@ void writeFileEncrypted(char *route, HashTableFreq *hashTableFreq, Dictionary *d
 
     snprintf(routeFile, sizeof(routeFile), "%s/%s.bin", folderName, fileName);
 
+    //FIn de creación de rutas
+
     FILE *archivo = fopen(routeFile, "wb");
     binaryHeader * header = malloc(sizeof(binaryHeader));
 
