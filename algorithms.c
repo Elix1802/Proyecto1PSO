@@ -394,7 +394,7 @@ StatRecord* decompressAllFiles(char *selected_directory) {
 
     StatRecord* record = (StatRecord*) malloc(sizeof(StatRecord));
     if (record == NULL) return NULL;
-    
+
     record->decompAcceleration = 0.0;
     record->decompress_time_s = 0.0;
     record->compress_time_s = 0.0;
@@ -407,26 +407,24 @@ StatRecord* decompressAllFiles(char *selected_directory) {
 
     selected_directoryAD = selected_directory;
 
-    DIR * dir =  opendir(selected_directoryAD);
+    DIR * dir = opendir(selected_directoryAD);
 
     if (dir == NULL) {
         selected_directory = "./compressed";
         selected_directoryAD = selected_directory;
-        dir =  opendir(selected_directoryAD);
-        if(dir==NULL) {
+        dir = opendir(selected_directoryAD);
+        if (dir == NULL) {
+            free(record);
             return NULL;
         }
-
     }
 
     char folderName[1024];
     char * newFolder = "decompressed";
-    snprintf(folderName, sizeof(folderName), "%s/%s", selected_directoryAD, newFolder); //Nueva carpeta en donde vivirá el .huff
+    snprintf(folderName, sizeof(folderName), "%s/%s", selected_directoryAD, newFolder);
     mkdir(folderName, 0777);
 
-
     struct dirent *entrada;
-    FILE *archivoHuffmanBinario;
 
     char folderFileName[512];
     int i = 0;
@@ -435,30 +433,63 @@ StatRecord* decompressAllFiles(char *selected_directory) {
 
     while ((entrada = readdir(dir)) != NULL) {
 
-
         if (!strcmp(entrada->d_name, ".") || !strcmp(entrada->d_name, "..")) {
             continue;
         }
 
         if (entrada->d_type == DT_DIR) {
             continue;
-        } 
-        
+        }
+
         if (strstr(entrada->d_name, ".huff") != NULL) {
             snprintf(folderFileName, sizeof(folderFileName), "%s/%s", selected_directoryAD, entrada->d_name);
+
+        
+            struct stat huffStat;
+            if (stat(folderFileName, &huffStat) == 0) {
+                record->compressedSize += huffStat.st_size / 1000.0;
+            } else {
+                perror("stat (.huff)");
+            }
+
             FILE *archivoHuffmanBinario = fopen(folderFileName, "rb");
             if (archivoHuffmanBinario == NULL) {
                 printf("Error al abrir el archivo contenedor: %s\n", folderFileName);
+                closedir(dir);
+                free(record);
                 return NULL;
             }
 
             printf("Archivo: %s\n", folderFileName);
-            huffmanToText(folderName, archivoHuffmanBinario);   
-            i++;     
+            huffmanToText(folderName, archivoHuffmanBinario);
+            
+            i++;
         }
     }
-    clock_gettime(CLOCK_MONOTONIC, &start);
+
+    closedir(dir);
+
+    clock_gettime(CLOCK_MONOTONIC, &end);
     record->decompress_time_s = elapsedTime(start, end);
+
+
+    DIR *outDir = opendir(folderName);
+    if (outDir != NULL) {
+        struct dirent *outEntry;
+        struct stat outStat;
+        char outPath[1024];
+
+        while ((outEntry = readdir(outDir)) != NULL) {
+            if (!strcmp(outEntry->d_name, ".") || !strcmp(outEntry->d_name, "..")) continue;
+            if (outEntry->d_type == DT_DIR) continue;
+
+            snprintf(outPath, sizeof(outPath), "%s/%s", folderName, outEntry->d_name);
+            if (stat(outPath, &outStat) == 0) {
+                record->filesSize += outStat.st_size / 1000.0;
+            }
+        }
+        closedir(outDir);
+    }
 
     return record;
 }
