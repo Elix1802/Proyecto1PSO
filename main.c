@@ -15,7 +15,7 @@
 struct BinaryHeader {
     char md5[33];
     int originalSize;
-    int frecuencias[256];
+    double frecuencias[256];
     char caracteres[256];
 };
 
@@ -71,12 +71,11 @@ void readFile(char *route, HashTableFreq *hashTableFreq)
 void createHeader (HashTableFreq *hashTableFreq, binaryHeader * header, char * route) {
     HashResultado resultado = obtenerHashArchivo(route);
     strcpy(header->md5, resultado.hex);
-    header->originalSize = getTotalCharsCounted(hashTableFreq); //total de caracteres
-    for(int i = 0; i<256;i++) {
+    header->originalSize = getTotalCharsCounted(hashTableFreq);
+    for(int i = 0; i < 256; i++) {
         header->caracteres[i] = getCharById(hashTableFreq, i);
         header->frecuencias[i] = getFrequencyById(hashTableFreq, i);
     }
-
 }
 
 void addHeader(binaryHeader * header, FILE * archivo) {
@@ -222,7 +221,7 @@ void generateCodes(Node *node, Dictionary *dictionary, char *code, int depth)
         depth + 1);
 }
 
-void huffmanToText(char* route, HeapPriorityQueue* heap)
+void huffmanToText(char* route)
 {
     FILE *archivoHuffmanBinario = fopen(route, "rb");
 
@@ -237,7 +236,6 @@ void huffmanToText(char* route, HeapPriorityQueue* heap)
         *delimitadorFormato = '\0';
     }
     char routeFile[1024];
-    //printf("%s", fileName);
 
     snprintf(routeFile, sizeof(routeFile), "%s/%s.txt", folderName, fileName);
 
@@ -246,14 +244,30 @@ void huffmanToText(char* route, HeapPriorityQueue* heap)
     if (archivoHuffmanBinario == NULL || archivoCambiado == NULL)
     {
         printf("Error al abrir el archivo.\n");
+        free(fileName);
+        if (archivoHuffmanBinario) fclose(archivoHuffmanBinario);
+        if (archivoCambiado) fclose(archivoCambiado);
         return;
     }
 
-    // Leer el header: esto además avanza el cursor hasta el primer byte de datos
     binaryHeader header;
     fread(&header, sizeof(binaryHeader), 1, archivoHuffmanBinario);
 
-    Node* root = getRoot(heap);
+
+    HeapPriorityQueue *heapDecodificacion = createHeapPriorityQueue();
+
+    for (int i = 0; i < 256; i++)
+    {
+        if (header.frecuencias[i] > 0)
+        {
+            Node *node = createNodeFreq(header.caracteres[i], header.frecuencias[i]);
+            insert(heapDecodificacion, &node);
+        }
+    }
+
+    convertHuffman(heapDecodificacion);
+    Node* root = getRoot(heapDecodificacion);
+
     int caracteresDecodificados = 0;
     int c;
 
@@ -270,14 +284,16 @@ void huffmanToText(char* route, HeapPriorityQueue* heap)
             {
                 fputc(getCharacter(root), archivoCambiado);
                 caracteresDecodificados++;
-                root = getRoot(heap);
+                root = getRoot(heapDecodificacion);
             }
         }
     }
 
+    free(fileName);
     fclose(archivoHuffmanBinario);
     fclose(archivoCambiado);
 }
+
 
 int main()
 {
@@ -315,7 +331,7 @@ int main()
     writeFileEncrypted("books/001_Moby Dick; Or, The Whale by Herman Melville (19082.txt", hashTableFreq, dictionary);
 
     
-    huffmanToText("compressed/001_Moby Dick; Or, The Whale by Herman Melville (19082.bin", heap);
+    huffmanToText("compressed/001_Moby Dick; Or, The Whale by Herman Melville (19082.bin");
 
     HashResultado resultado = obtenerHashArchivo("books/001_Moby Dick; Or, The Whale by Herman Melville (19082.txt");
     printf("Hash MD5 del archivo original: %s\n", resultado.hex);
