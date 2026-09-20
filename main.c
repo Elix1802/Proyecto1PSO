@@ -78,7 +78,9 @@ void createHeader (HashTableFreq *hashTableFreq, binaryHeader * header, char * r
 }
 
 void addHeader(binaryHeader * header, FILE * archivo) {
-    fwrite(&header, sizeof(header), 1, archivo);
+    if (header != NULL && archivo != NULL) {
+        fwrite(header, sizeof(binaryHeader), 1, archivo);
+    }
 }
 
 void writeBytes(char *codigo, FILE *archivo, int *conteoFinal)
@@ -126,7 +128,7 @@ void writeFileEncrypted(char *route, HashTableFreq *hashTableFreq, Dictionary *d
     char routeFile[1024];
     //printf("%s", fileName);
 
-    snprintf(routeFile, sizeof(routeFile), "%s/%s", folderName, fileName);
+    snprintf(routeFile, sizeof(routeFile), "%s/%s.bin", folderName, fileName);
 
     FILE *archivo = fopen(routeFile, "wb");
     binaryHeader * header = malloc(sizeof(binaryHeader));
