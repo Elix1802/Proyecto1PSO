@@ -1,4 +1,84 @@
-.btn-compress{
-	background-color: #2d5a3d;
-	color: white;
+/* Botones*/
+#btnCompress button, button#btnCompress, .btnCompress {
+    background-image: none;
+    background-color: #6366f1;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-weight: 600;
+}
+
+#btnCompress:hover button, button#btnCompress:hover, .btnCompress:hover {
+    background-color: #7faee9;
+    color: #ffffff;
+    box-shadow: 0 2px 6px rgba(53, 132, 228, 0.35);
+}
+
+#btnCompress:active button, button#btnCompress:active, .btnCompress:active {
+    background-color: #0a2f62;
+    box-shadow: none;
+}
+
+
+
+#btnDecompress button, button#btnDecompress, .btnDecompress {
+    background-image: none;
+    background-color: #10b981;
+    color: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-weight: 600;
+}
+
+#btnDecompress:hover button, button#btnDecompress:hover, .btnDecompress:hover {
+    background-color: #38a169;
+    border-color: rgba(0, 0, 0, 0.3);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+#btnDecompress:active button, button#btnDecompress:active, .btnDecompress:active {
+    background-color: #19470f;
+    color: #ffffff;
+}
+
+
+
+button.btnOpenFile {
+    background-image: none;
+    background-color: #3b82f6; 
+    color: #ffffff;
+    font-weight: bold;
+    border-radius: 8px;
+    padding: 8px 16px;
+    border: none;
+}
+
+button.btnOpenFile:hover {
+    background-color: #2563eb;
+}
+
+button.btnOpenFile:active {
+    background-color: #1d4ed8;
+}
+
+/* Estadísticas */
+.stats-grid {
+    background-color: #444444;
+    border: 1px solid #444444;
+    border-radius: 4px;
+    padding-bottom: 16px;
+}
+
+.stats-grid label {
+    background-color: #1e1e1e;
+    color: #ffffff;
+    padding: 8px 12px;
+}
+
+.stats-grid label.header {
+    background-color: #2b2d30;
+    font-weight: bold;
+    color: #38a169;
 }
