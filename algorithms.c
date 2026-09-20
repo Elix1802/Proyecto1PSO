@@ -418,8 +418,20 @@ void decompressAllFiles(char *selected_directory) {
     DIR * dir =  opendir(selected_directoryAD);
 
     if (dir == NULL) {
-        dir =  opendir("./compressed");
+        selected_directory = "./compressed";
+        selected_directoryAD = selected_directory;
+        dir =  opendir(selected_directoryAD);
+        if(dir==NULL) {
+            return NULL;
+        }
+
     }
+
+    char folderName[1024];
+    char * newFolder = "decompressed";
+    snprintf(folderName, sizeof(folderName), "%s/%s", selected_directoryA, newFolder); //Nueva carpeta en donde vivirá el .huff
+    mkdir(folderName, 0777);
+
 
     struct dirent *entrada;
 
@@ -429,16 +441,21 @@ void decompressAllFiles(char *selected_directory) {
 
     while ((entrada = readdir(dir)) != NULL) {
 
-        if(i == 5) break;
 
         if (!strcmp(entrada->d_name, ".") || !strcmp(entrada->d_name, "..")) {
             continue;
         }
 
-        snprintf(folderFileName, sizeof(folderFileName), "%s/%s", selected_directoryAD, entrada->d_name);
-        printf("Archivo: %s\n", folderFileName);
-        huffmanToText(folderFileName);
-        i++;
+        if (entrada->d_type == DT_DIR) {
+            continue;
+        } 
+        
+        if (strstr(entrada->d_name, ".huff") != NULL) {
+            snprintf(folderFileName, sizeof(folderFileName), "%s/%s", selected_directoryAD, entrada->d_name);
+            printf("Archivo: %s\n", folderFileName);
+            huffmanToText(folderFileName);   
+            i++;     
+        }
     }
 
 }
