@@ -338,7 +338,7 @@ StatRecord* compressAllFiles(char *selected_directory) {
 
     char folderName[1024];
     char * newFolder = "compressed";
-    snprintf(folderName, sizeof(folderName), "%s/%s", selected_directoryA, newFolder);
+    snprintf(folderName, sizeof(folderName), "%s/%s", selected_directoryA, newFolder); //Nueva carpeta en donde vivirá el .huff
     mkdir(folderName, 0777);
 
     char huffFileNameRoute[1024]; // Nombre del archivo huff en el directorio actual
@@ -362,7 +362,6 @@ StatRecord* compressAllFiles(char *selected_directory) {
 
         if (i == 5) break;
 
-        // Ignorar referencias de directorio actual y padre
         if (!strcmp(entrada->d_name, ".") || !strcmp(entrada->d_name, "..")) {
             continue;
         }
@@ -372,7 +371,6 @@ StatRecord* compressAllFiles(char *selected_directory) {
             continue;
         }   
 
-        // Ignorar archivos contenedores .huff
         if (strstr(entrada->d_name, ".huff") != NULL) {
             continue;
         }
@@ -391,7 +389,6 @@ StatRecord* compressAllFiles(char *selected_directory) {
             perror("stat");
         }
 
-        // Procesa y escribe en el contenedor Huffman binario
         encryptFiles(folderFileName, huffmanFile);
 
         clock_gettime(CLOCK_MONOTONIC, &end);
