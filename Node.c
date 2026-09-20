@@ -44,7 +44,7 @@ void destroyNode(Node * self) {
 }
 
 void destroyTree(Node * self) {
-    if(self != NULL) {
+    if(self != NULL && self->isFather) {
         destroyTree(self->leftNode);
         destroyTree(self->rightNode);
         free(self);
