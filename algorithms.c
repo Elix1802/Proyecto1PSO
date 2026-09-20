@@ -412,7 +412,21 @@ StatRecord* compressAllFiles(char *selected_directory) {
 }
 
 
-void decompressAllFiles(char *selected_directory) {
+StatRecord* decompressAllFiles(char *selected_directory) {
+
+    StatRecord* record = (StatRecord*) malloc(sizeof(StatRecord));
+    if (record == NULL) return NULL;
+    
+    record->decompAcceleration = 0.0;
+    record->decompress_time_s = 0.0;
+    record->compress_time_s = 0.0;
+    record->method = "Basic";
+    record->radius = 999.999;
+    record->filesSize = 0.0;
+    record->compressedSize = 0.0;
+
+    struct timespec start, end;
+
     selected_directoryAD = selected_directory;
 
     DIR * dir =  opendir(selected_directoryAD);
@@ -439,6 +453,8 @@ void decompressAllFiles(char *selected_directory) {
     char folderFileName[512];
     int i = 0;
 
+    clock_gettime(CLOCK_MONOTONIC, &start);
+
     while ((entrada = readdir(dir)) != NULL) {
 
 
@@ -457,5 +473,9 @@ void decompressAllFiles(char *selected_directory) {
             i++;     
         }
     }
+    clock_gettime(CLOCK_MONOTONIC, &start);
 
+    record->decompress_time_s = elapsedTime(start, end);
+
+    return record;
 }
