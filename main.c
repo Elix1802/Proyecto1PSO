@@ -1,5 +1,7 @@
 #include <gtk/gtk.h>
 
+static char *selected_directory = NULL;
+
 typedef struct {
     const char *method;
     const char *healthPercentage;
@@ -11,7 +13,6 @@ typedef struct {
     double compressedSize;
     double radius;
 } StatRecord;
-
 
 static void add_stat_row(GtkGrid *grid, int row, const StatRecord *stat) {
     char str_comp[32], str_decomp[32], str_comp_accel[32];
@@ -40,7 +41,6 @@ static void add_stat_row(GtkGrid *grid, int row, const StatRecord *stat) {
     for (int col = 0; col < 9; col++) {
         GtkWidget *label = gtk_label_new(values[col]);
 
-
         gtk_widget_set_halign(label, GTK_ALIGN_FILL);
         gtk_widget_set_valign(label, GTK_ALIGN_FILL);
 
@@ -59,15 +59,22 @@ static void on_folder_dialog_response(GObject *source, GAsyncResult *result, gpo
     GtkLabel *label = GTK_LABEL(user_data);
     GError *error = NULL;
 
+    // Se utiliza select_folder_finish para obtener la carpeta seleccionada
     GFile *folder = gtk_file_dialog_select_folder_finish(dialog, result, &error);
     if (folder) {
-        char *path = g_file_get_path(folder);
-        gtk_label_set_text(label, path);
-        g_free(path);
+        if (selected_directory != NULL) {
+            g_free(selected_directory);
+        }
+
+        selected_directory = g_file_get_path(folder);
+        gtk_label_set_text(label, selected_directory);
+
         g_object_unref(folder);
     } else {
         if (error) {
-            g_printerr("No se selecciono carpeta: %s\n", error->message);
+            if (!g_error_matches(error, G_IO_ERROR, G_IO_ERROR_CANCELLED)) {
+                g_printerr("Error al seleccionar carpeta: %s\n", error->message);
+            }
             g_error_free(error);
         }
     }
@@ -79,15 +86,25 @@ static void on_open_button_clicked(GtkButton *button, gpointer user_data) {
 
     GtkFileDialog *dialog = gtk_file_dialog_new();
     gtk_file_dialog_set_title(dialog, "Seleccionar directorio");
+    
+    // Se utiliza select_folder para abrir el explorador en modo seleccion de directorio
     gtk_file_dialog_select_folder(dialog, parent_window, NULL, on_folder_dialog_response, label);
 }
 
 static void on_compress_button_clicked(GtkButton *button, gpointer user_data) {
-    /// Implementar logica de compresion
+    if (selected_directory == NULL) {
+        g_print("Atención: No hay una carpeta seleccionada para comprimir.\n");
+        return;
+    }
+    g_print("Comprimiendo carpeta: %s\n", selected_directory);
 }
 
 static void on_decompress_button_clicked(GtkButton *button, gpointer user_data) {
-    /// Implementar logica de descompresion
+    if (selected_directory == NULL) {
+        g_print("Atención: No hay una carpeta seleccionada para descomprimir.\n");
+        return;
+    }
+    g_print("Descomprimiendo carpeta: %s\n", selected_directory);
 }
 
 static void activate(GtkApplication *app, gpointer user_data) {
@@ -114,6 +131,7 @@ static void activate(GtkApplication *app, gpointer user_data) {
 
     GObject *open_button = gtk_builder_get_object(builder, "btnOpenFile");
     if (open_button) {
+        gtk_widget_add_css_class(GTK_WIDGET(open_button), "btnOpenFile");
         g_signal_connect(open_button, "clicked", G_CALLBACK(on_open_button_clicked), dir_label);
     } else {
         g_printerr("No se encontro 'btnOpenFile'\n");
@@ -146,11 +164,10 @@ static void activate(GtkApplication *app, gpointer user_data) {
             }
         }
 
-
         StatRecord ejemploPrueba[] = {
             {"Huffman", "98%", 1.45, 0.32, 2.40, 3.10, 1024.0, 450.5, 12.50},
             {"Fork",    "95%", 0.88, 0.15, 3.10, 4.20, 2048.0, 810.0,  8.20},
-            {"Pthread",     "80%", 0.25, 0.08, 1.15, 1.30,  512.0, 400.0,  4.00}
+            {"Pthread", "80%", 0.25, 0.08, 1.15, 1.30,  512.0, 400.0,  4.00}
         };
 
         size_t count = sizeof(ejemploPrueba) / sizeof(ejemploPrueba[0]);
@@ -172,6 +189,11 @@ int main(int argc, char *argv[]) {
     );
     g_signal_connect(app, "activate", G_CALLBACK(activate), NULL);
     int status = g_application_run(G_APPLICATION(app), argc, argv);
+
+    if (selected_directory != NULL) {
+        g_free(selected_directory);
+    }
+
     g_object_unref(app);
     return status;
 }
