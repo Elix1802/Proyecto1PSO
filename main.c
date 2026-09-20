@@ -4,46 +4,128 @@
 #include "Dictionary.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
-void readFile(char* route, HashTableFreq* hashTableFreq) {
+#include <sys/stat.h>
+#include <sys/types.h>
+
+void readFile(char *route, HashTableFreq *hashTableFreq)
+{
     FILE *archivo = fopen(route, "r");
 
-    if (archivo == NULL) {
+    if (archivo == NULL)
+    {
         printf("Error al abrir el archivo.\n");
         return;
     }
 
     int cant = 0;
     int c;
-    while ((c = fgetc(archivo)) != EOF) {
-        putchar(c);
+    while ((c = fgetc(archivo)) != EOF)
+    {
+        // putchar(c);
         addHashTableFreqNode(hashTableFreq, createNode(c));
         cant++;
     }
 
-
     fclose(archivo);
     updateHashTableFreqNode(hashTableFreq, cant);
-    //printHashTableFreq(hashTableFreq);
+    // printHashTableFreq(hashTableFreq);
     printf("\nCantidad de caracteres: %d\n", cant);
     return;
 }
 
-void HashTableToHeap(HashTableFreq* hashTableFreq, HeapPriorityQueue* heap) {
-    Node** nodes = getHashTableFreq(hashTableFreq);
-    for (int i = 0; i < 256; i++) {
-        if (nodes[i] != NULL) {
+void writeBytes(char *codigo, FILE *archivo, int *conteoFinal)
+{
+    if (codigo == NULL)
+        return;
+
+    unsigned char buffer_bits = 0;
+    int conteoBits = 0;
+    for (int i = 0; codigo[i] != '\0'; i++)
+    {
+        buffer_bits <<= 1;
+
+        if (codigo[i] == '1'){
+            buffer_bits |= 1;
+        }
+
+        conteoBits++;
+
+        if (conteoBits == 8){
+            fputc(buffer_bits, archivo);
+            buffer_bits = 0;
+            conteoBits = 0;
+        }
+    }
+
+    *conteoFinal = conteoBits;
+}
+
+void writeFileEncrypted(char *route, Dictionary *dictionary)
+{
+    FILE *archivoRead = fopen(route, "r");
+
+    char *folderName = "compressed";
+    mkdir(folderName, 0777);
+
+    char *filename = "";
+    char *delimitador = strchr(route, '/');
+    char *fileName = strdup(delimitador + 1);
+    char routeFile[1024];
+
+    snprintf(routeFile, sizeof(routeFile), "%s/%s", folderName, fileName);
+    printf("%s", routeFile);
+
+    FILE *archivo = fopen(routeFile, "wb");
+
+    if (archivo == NULL)
+    {
+        printf("Error al abrir el archivo.\n");
+        return;
+    }
+
+    int c;
+    int conteoFinal = 0;
+    while ((c = fgetc(archivoRead)) != EOF)
+    {
+        char *value = getDictionaryValue(dictionary, c);
+        writeBytes(value, archivo, &conteoFinal);
+    }
+
+    unsigned char buffer_bits = 0;
+
+    //Exceso
+    if (conteoFinal > 0){
+
+        buffer_bits<<=(8-conteoFinal);
+        fputc(buffer_bits, archivo);
+        buffer_bits = 0;
+        conteoFinal = 0;
+    }
+
+    fclose(archivoRead);
+    fclose(archivo);
+    return;
+}
+
+void HashTableToHeap(HashTableFreq *hashTableFreq, HeapPriorityQueue *heap)
+{
+    Node **nodes = getHashTableFreq(hashTableFreq);
+    for (int i = 0; i < 256; i++)
+    {
+        if (nodes[i] != NULL)
+        {
             insert(heap, &nodes[i]);
         }
     }
 }
 
-void generateCodes(Node* node, Dictionary* dictionary, char* code, int depth)
+void generateCodes(Node *node, Dictionary *dictionary, char *code, int depth)
 {
     if (node == NULL)
         return;
 
-    
     if (isLeaf(node))
     {
         code[depth] = '\0';
@@ -51,60 +133,30 @@ void generateCodes(Node* node, Dictionary* dictionary, char* code, int depth)
         addDictionaryElement(
             dictionary,
             getCharacter(node),
-            code
-        );
+            code);
 
         return;
     }
 
-    
     code[depth] = '0';
 
     generateCodes(
         getLeftNode(node),
         dictionary,
         code,
-        depth + 1
-    );
+        depth + 1);
 
-    
     code[depth] = '1';
 
     generateCodes(
         getRightNode(node),
         dictionary,
         code,
-        depth + 1
-    );
+        depth + 1);
 }
 
-void huffmanToText(char* route, HeapPriorityQueue* heap){
-    FILE *archivoHuffman = fopen(route, "r");
-    FILE *archivoCambiado = fopen("books/Descomprimido.txt", "w");
-    Node* root = getRoot(heap);
-    
-    if (archivoHuffman == NULL) {
-        printf("Error al abrir el archivo.\n");
-        return;
-    }
-
-    int c;
-    while ((c = fgetc(archivoHuffman)) != EOF) {        
-        if (c == '0') {
-            root = getLeftNode(root);
-        } else if (c == '1') {
-            root = getRightNode(root);
-        }
-        if (isLeaf(root)) {
-            fputc(getCharacter(root), archivoCambiado);
-            root = getRoot(heap);
-        }
-    }
-    fclose(archivoHuffman);
-    fclose(archivoCambiado);
-}
-
-int main() {
+int main()
+{
     /*
     Node * node = createNode('z');
     Node * leftNode = createNode('a');
@@ -113,30 +165,29 @@ int main() {
     addHashTableFreqNode(hashTableFreq, node);
     addHashTableFreqNode(hashTableFreq, leftNode);
     addHashTableFreqNode(hashTableFreq, rightNode);
-    printHashTableFreq(hashTableFreq);   
+    printHashTableFreq(hashTableFreq);
 */
 
+    // addRep(node, 12);
+    // addLeftNode(node, leftNode);
+    // addRightNode(node, rightNode);
+    // float freq = getFreq(node);
+    // Node * left = getLeftNode(node);
+    // printf("Caracter: %c\n", getCharacter(left));
 
-    //addRep(node, 12);
-    //addLeftNode(node, leftNode);
-    //addRightNode(node, rightNode);
-    //float freq = getFreq(node);
-    //Node * left = getLeftNode(node);
-    //printf("Caracter: %c\n", getCharacter(left));
+    // destroyHashTableFreq(hashTableFreq);
 
-
-    //destroyHashTableFreq(hashTableFreq);
-
-    HashTableFreq * hashTableFreq = createHashTableFreq();
-    HeapPriorityQueue* heap = createHeapPriorityQueue();
-    Dictionary* dictionary = createDictionary();
+    HashTableFreq *hashTableFreq = createHashTableFreq();
+    HeapPriorityQueue *heap = createHeapPriorityQueue();
+    Dictionary *dictionary = createDictionary();
     readFile("books/002_Pride and Prejudice by Jane Austen (186807).txt", hashTableFreq);
     HashTableToHeap(hashTableFreq, heap);
     display(heap);
     convertHuffman(heap);
     display(heap);
-    generateCodes(getNodes(heap)[0], dictionary, (char*)malloc(256), 0);
+    generateCodes(getNodes(heap)[0], dictionary, (char *)malloc(256), 0);
     printDictionaryValues(dictionary);
+    writeFileEncrypted("books/002_Pride and Prejudice by Jane Austen (186807).txt", dictionary);
 
     huffmanToText("books/Corán.txt", heap);
 
