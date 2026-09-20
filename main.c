@@ -83,37 +83,39 @@ void addHeader(binaryHeader * header, FILE * archivo) {
     }
 }
 
-void writeBytes(char *codigo, FILE *archivo, int *conteoFinal)
+void writeBits(char *codigo, FILE *archivo, unsigned char *buffer_bits, int *conteoBits)
 {
     if (codigo == NULL)
         return;
 
-    unsigned char buffer_bits = 0;
-    int conteoBits = 0;
     for (int i = 0; codigo[i] != '\0'; i++)
     {
-        buffer_bits <<= 1;
+        *buffer_bits <<= 1;
 
-        if (codigo[i] == '1'){
-            buffer_bits |= 1;
-        }
+        if (codigo[i] == '1')
+            *buffer_bits |= 1;
 
-        conteoBits++;
+        (*conteoBits)++;
 
-        if (conteoBits == 8){
-            fputc(buffer_bits, archivo);
-            buffer_bits = 0;
-            conteoBits = 0;
+        if (*conteoBits == 8)
+        {
+            fputc(*buffer_bits, archivo);
+            *buffer_bits = 0;
+            *conteoBits = 0;
         }
     }
-
-    *conteoFinal = conteoBits;
 }
 
 void writeFileEncrypted(char *route, HashTableFreq *hashTableFreq, Dictionary *dictionary)
 {
     //Sección de creación de rutas
     FILE *archivoRead = fopen(route, "r");
+
+    if (archivoRead == NULL)
+    {
+        printf("Error al abrir el archivo de lectura.\n");
+        return;
+    }
 
     char *folderName = "compressed";
     mkdir(folderName, 0777);
@@ -133,35 +135,34 @@ void writeFileEncrypted(char *route, HashTableFreq *hashTableFreq, Dictionary *d
     //FIn de creación de rutas
 
     FILE *archivo = fopen(routeFile, "wb");
-    binaryHeader * header = malloc(sizeof(binaryHeader));
-
-    createHeader(hashTableFreq, header, routeFile);
-    addHeader(header, archivo);
-
 
     if (archivo == NULL)
     {
         printf("Error al abrir el archivo.\n");
+        free(fileName);
+        fclose(archivoRead);
         return;
     }
 
+    binaryHeader * header = malloc(sizeof(binaryHeader));
+
+    createHeader(hashTableFreq, header, route);
+    addHeader(header, archivo);
+
     int c;
-    int conteoFinal = 0;
+    unsigned char buffer_bits = 0;
+    int conteoBits = 0;
     while ((c = fgetc(archivoRead)) != EOF)
     {
         char *value = getDictionaryValue(dictionary, c);
-        writeBytes(value, archivo, &conteoFinal);
+        writeBits(value, archivo, &buffer_bits, &conteoBits);
     }
 
-    unsigned char buffer_bits = 0;
-
     //Exceso
-    if (conteoFinal > 0){
-
-        buffer_bits<<=(8-conteoFinal);
+    if (conteoBits > 0)
+    {
+        buffer_bits <<= (8 - conteoBits);
         fputc(buffer_bits, archivo);
-        buffer_bits = 0;
-        conteoFinal = 0;
     }
 
     free(fileName);
@@ -222,7 +223,7 @@ void generateCodes(Node *node, Dictionary *dictionary, char *code, int depth)
 void huffmanToText(char* route, HeapPriorityQueue* heap)
 {
     FILE *archivoHuffmanBinario = fopen(route, "rb");
-    FILE *archivoCambiado = fopen("books/Descomprimido.txt", "w");
+    FILE *archivoCambiado = fopen("descompressed/Descomprimido.txt", "w");
 
     if (archivoHuffmanBinario == NULL || archivoCambiado == NULL)
     {
@@ -292,8 +293,10 @@ int main()
     display(heap);
     generateCodes(getNodes(heap)[0], dictionary, (char *)malloc(256), 0);
     printDictionaryValues(dictionary);
+    putchar('L');
     writeFileEncrypted("books/Coscu.txt", hashTableFreq, dictionary);
 
+    
     huffmanToText("compressed/Coscu.bin", heap);
 
     return 0;
