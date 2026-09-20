@@ -1,7 +1,7 @@
-#include "Node.h"
-#include "HeapPriorityQueue.h"
-#include "HashTableFreq.h"
-#include "Dictionary.h"
+#include "dataStructs/Node.h"
+#include "dataStructs/HeapPriorityQueue.h"
+#include "dataStructs/HashTableFreq.h"
+#include "dataStructs/Dictionary.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <dirent.h>
