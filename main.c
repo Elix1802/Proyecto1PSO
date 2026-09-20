@@ -1,5 +1,59 @@
 #include <gtk/gtk.h>
 
+typedef struct {
+    const char *method;
+    const char *healthPercentage;
+    double compress_time_s;
+    double decompress_time_s;
+    double compAcceleration;
+    double decompAcceleration;
+    double filesSize;
+    double compressedSize;
+    double radius;
+} StatRecord;
+
+
+static void add_stat_row(GtkGrid *grid, int row, const StatRecord *stat) {
+    char str_comp[32], str_decomp[32], str_comp_accel[32];
+    char str_decomp_accel[32], str_fsize[32], str_csize[32], str_rad[32];
+
+    snprintf(str_comp, sizeof(str_comp), "%.2f s", stat->compress_time_s);
+    snprintf(str_decomp, sizeof(str_decomp), "%.2f s", stat->decompress_time_s);
+    snprintf(str_comp_accel, sizeof(str_comp_accel), "%.2f %%", stat->compAcceleration);
+    snprintf(str_decomp_accel, sizeof(str_decomp_accel), "%.2f %%", stat->decompAcceleration);
+    snprintf(str_fsize, sizeof(str_fsize), "%.2f KB", stat->filesSize);
+    snprintf(str_csize, sizeof(str_csize), "%.2f KB", stat->compressedSize);
+    snprintf(str_rad, sizeof(str_rad), "%.2f mm", stat->radius);
+
+    const char *values[] = {
+        stat->method,
+        stat->healthPercentage,
+        str_comp,
+        str_decomp,
+        str_comp_accel,
+        str_decomp_accel,
+        str_fsize,
+        str_csize,
+        str_rad
+    };
+
+    for (int col = 0; col < 9; col++) {
+        GtkWidget *label = gtk_label_new(values[col]);
+
+
+        gtk_widget_set_halign(label, GTK_ALIGN_FILL);
+        gtk_widget_set_valign(label, GTK_ALIGN_FILL);
+
+        gtk_grid_attach(grid, label, col, row, 1, 1);
+    }
+}
+
+static void populate_stats_grid(GtkGrid *grid, const StatRecord records[], size_t count) {
+    for (size_t i = 0; i < count; i++) {
+        add_stat_row(grid, (int)(i + 1), &records[i]);
+    }
+}
+
 static void on_folder_dialog_response(GObject *source, GAsyncResult *result, gpointer user_data) {
     GtkFileDialog *dialog = GTK_FILE_DIALOG(source);
     GtkLabel *label = GTK_LABEL(user_data);
@@ -29,11 +83,11 @@ static void on_open_button_clicked(GtkButton *button, gpointer user_data) {
 }
 
 static void on_compress_button_clicked(GtkButton *button, gpointer user_data) {
-    ///Implementar logica de compresion
+    /// Implementar logica de compresion
 }
 
 static void on_decompress_button_clicked(GtkButton *button, gpointer user_data) {
-    ///Implementar logica de descompresion
+    /// Implementar logica de descompresion
 }
 
 static void activate(GtkApplication *app, gpointer user_data) {
@@ -77,6 +131,32 @@ static void activate(GtkApplication *app, gpointer user_data) {
         g_signal_connect(decompress_button, "clicked", G_CALLBACK(on_decompress_button_clicked), window);
     } else {
         g_printerr("No se encontro 'btnDecompress'\n");
+    }
+
+    GObject *grid_stats = gtk_builder_get_object(builder, "gridStats");
+    if (grid_stats) {
+        gtk_widget_add_css_class(GTK_WIDGET(grid_stats), "stats-grid");
+
+        for (int col = 0; col < 9; col++) {
+            GtkWidget *header_label = gtk_grid_get_child_at(GTK_GRID(grid_stats), col, 0);
+            if (header_label) {
+                gtk_widget_add_css_class(header_label, "header");
+                gtk_widget_set_halign(header_label, GTK_ALIGN_FILL);
+                gtk_widget_set_valign(header_label, GTK_ALIGN_FILL);
+            }
+        }
+
+
+        StatRecord ejemploPrueba[] = {
+            {"Huffman", "98%", 1.45, 0.32, 2.40, 3.10, 1024.0, 450.5, 12.50},
+            {"Fork",    "95%", 0.88, 0.15, 3.10, 4.20, 2048.0, 810.0,  8.20},
+            {"Pthread",     "80%", 0.25, 0.08, 1.15, 1.30,  512.0, 400.0,  4.00}
+        };
+
+        size_t count = sizeof(ejemploPrueba) / sizeof(ejemploPrueba[0]);
+        populate_stats_grid(GTK_GRID(grid_stats), ejemploPrueba, count);
+    } else {
+        g_printerr("No se encontro 'gridStats'\n");
     }
 
     gtk_window_set_application(GTK_WINDOW(window), app);
