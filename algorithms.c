@@ -421,13 +421,12 @@ StatRecord* decompressAllFiles(char *selected_directory) {
 
     char folderName[1024];
     char * newFolder = "decompressed";
-    snprintf(folderName, sizeof(folderName), "%s/%s", selected_directoryAD, newFolder);
-    mkdir(folderName, 0777);
+
 
     struct dirent *entrada;
 
     char folderFileName[512];
-    int i = 0;
+    int i = 0; //Contador de huff
 
     clock_gettime(CLOCK_MONOTONIC, &start);
 
@@ -442,6 +441,8 @@ StatRecord* decompressAllFiles(char *selected_directory) {
         }
 
         if (strstr(entrada->d_name, ".huff") != NULL) {
+            snprintf(folderName, sizeof(folderName), "%s/%s", selected_directoryAD, newFolder);
+            mkdir(folderName, 0777);
             snprintf(folderFileName, sizeof(folderFileName), "%s/%s", selected_directoryAD, entrada->d_name);
 
         
@@ -473,6 +474,7 @@ StatRecord* decompressAllFiles(char *selected_directory) {
     record->decompress_time_s = elapsedTime(start, end);
 
 
+    if (i!=0) {
     DIR *outDir = opendir(folderName);
     if (outDir != NULL) {
         struct dirent *outEntry;
@@ -491,5 +493,9 @@ StatRecord* decompressAllFiles(char *selected_directory) {
         closedir(outDir);
     }
 
-    return record;
+    return record; 
+    }
+
+    else return NULL;
+
 }
