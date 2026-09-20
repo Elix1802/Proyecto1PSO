@@ -3,17 +3,7 @@
 
 static char *selected_directory = NULL;
 
-typedef struct {
-    const char *method;
-    const char *healthPercentage;
-    double compress_time_s;
-    double decompress_time_s;
-    double compAcceleration;
-    double decompAcceleration;
-    double filesSize;
-    double compressedSize;
-    double radius;
-} StatRecord;
+
 
 static void add_stat_row(GtkGrid *grid, int row, const StatRecord *stat) {
     char str_comp[32], str_decomp[32], str_comp_accel[32];

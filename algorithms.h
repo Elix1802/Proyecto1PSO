@@ -19,6 +19,19 @@ struct BinaryHeader {
     char caracteres[256];
 };
 
+
+typedef struct {
+    const char *method;
+    const char *healthPercentage;
+    double compress_time_s;
+    double decompress_time_s;
+    double compAcceleration;
+    double decompAcceleration;
+    double filesSize;
+    double compressedSize;
+    double radius;
+} StatRecord;
+
 typedef struct BinaryHeader binaryHeader;
 
 typedef struct {
@@ -46,7 +59,7 @@ void huffmanToText(char *route);
 void encryptFiles(char *route);
 
 // Funciones de Procesamiento por Lote (Directorio)
-void compressAllFiles(char *selected_directory);
+StatRecord* compressAllFiles(char *selected_directory);
 void decompressAllFiles(char *selected_directory);
 
 #endif // ALGORITHMS_H

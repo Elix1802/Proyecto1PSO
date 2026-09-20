@@ -309,7 +309,7 @@ void encryptFiles(char * route) {
 }
 
 
-void compressAllFiles(char *selected_directory) {
+StatRecord* compressAllFiles(char *selected_directory) {
     selected_directoryA = selected_directory;
     DIR * dir =  opendir(selected_directory);
 
