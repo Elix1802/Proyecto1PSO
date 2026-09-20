@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <dirent.h>
+#include <time.h>
 
 #include <string.h>
 #include "MD5/md5.h"
@@ -28,6 +29,26 @@ typedef struct {
 
 typedef struct BinaryHeader binaryHeader;
 
+/**
+ * Function which shows how many miliseconds and nanoseconds
+ * have passed between the execution of the algorithm
+ */
+double elapsedTime(struct timespec start, struct timespec end)
+{
+    long seconds = end.tv_sec - start.tv_sec;
+    long nanoseconds = end.tv_nsec - start.tv_nsec;
+
+    if (nanoseconds < 0)
+    {
+        seconds--;
+        nanoseconds += 1000000000L;
+    }
+
+    double elapsed_ns = (seconds * 1e9) + nanoseconds;
+    double elapsed_ms = elapsed_ns / 1e6;
+
+    return elapsed_ms;
+}
 
 HashResultado obtenerHashArchivo(const char *archivo) {
     HashResultado resultado;
@@ -310,16 +331,18 @@ void encryptFiles(char * route) {
 
     destroyDictionary(dictionary);
     destroyHashTableFreq(hashTableFreq);
-    //destroyHeapPriorityQueue(heap);
+    destroyHeapPriorityQueue(heap);
 }
 
 
-void compressAllFiles() {
+double compressAllFiles() {
     DIR * dir = opendir("./books");
+    struct timespec start, end;
+    double elapsedMilliseconds = 0.0;
 
     if (dir == NULL) {
         perror("Error al abrir el directorio");
-        return;
+        return -1.0;
     }
 
     struct dirent *entrada;
@@ -339,10 +362,14 @@ void compressAllFiles() {
 
         snprintf(folderFileName, sizeof(folderFileName), "%s/%s", dirName, entrada->d_name);
         printf("Archivo: %s\n", folderFileName);
+        clock_gettime(CLOCK_MONOTONIC, &start);
         encryptFiles(folderFileName);
+        clock_gettime(CLOCK_MONOTONIC, &end);
+        elapsedMilliseconds += elapsedTime(start, end);
         i++;
     }
 
+    return elapsedMilliseconds;
 }
 
 void decompressAllFiles() {
