@@ -216,79 +216,57 @@ void generateCodes(Node *node, Dictionary *dictionary, char *code, int depth)
         depth + 1);
 }
 
-void huffmanToText(char* route)
+void huffmanToText(char* route,  FILE *archivoHuffmanBinario)
 {
-    FILE *archivoHuffmanBinario = fopen(route, "rb");
+    binaryHeader header;   
+    while (fread(&header, sizeof(binaryHeader), 1, archivoHuffmanBinario) == 1) {
+            printf("Extrayendo: %s (MD5: %s)\n", header.fileName, header.md5);
 
-    char folderName[1024];
-    char *folderNamePtr = "decompressed";
-    snprintf(folderName, sizeof(folderName), "%s/%s", selected_directoryAD, folderNamePtr);
-    mkdir(folderName, 0777);
+            char routeFile[1024];
+            snprintf(routeFile, sizeof(routeFile), "%s/%s", route, header.fileName);
 
-    char *delimitadorCarpeta = strrchr(route, '/');
-    char *fileName = strdup(delimitadorCarpeta ? delimitadorCarpeta + 1 : route);
-
-    char *delimitadorFormato = strrchr(fileName, '.');
-    if (delimitadorFormato) {
-        *delimitadorFormato = '\0';
-    }
-    char routeFile[1024];
-
-    snprintf(routeFile, sizeof(routeFile), "%s/%s.txt", folderName, fileName);
-
-    FILE *archivoCambiado = fopen(routeFile, "w");
-
-    if (archivoHuffmanBinario == NULL || archivoCambiado == NULL)
-    {
-        printf("Error al abrir el archivo.\n");
-        free(fileName);
-        if (archivoHuffmanBinario) fclose(archivoHuffmanBinario);
-        if (archivoCambiado) fclose(archivoCambiado);
-        return;
-    }
-
-    binaryHeader header;
-    fread(&header, sizeof(binaryHeader), 1, archivoHuffmanBinario);
-
-
-    HeapPriorityQueue *heapDecodificacion = createHeapPriorityQueue();
-
-    for (int i = 0; i < 256; i++)
-    {
-        if (header.frecuencias[i] > 0)
-        {
-            Node *node = createNodeFreq(header.caracteres[i], header.frecuencias[i]);
-            insert(heapDecodificacion, &node);
-        }
-    }
-
-    convertHuffman(heapDecodificacion);
-    Node* root = getRoot(heapDecodificacion);
-
-    int caracteresDecodificados = 0;
-    int c;
-
-    while (caracteresDecodificados < header.originalSize &&
-           (c = fgetc(archivoHuffmanBinario)) != EOF)
-    {
-        for (int i = 7; i >= 0 && caracteresDecodificados < header.originalSize; i--)
-        {
-            int bit = (c >> i) & 1;
-
-            root = bit == 0 ? getLeftNode(root) : getRightNode(root);
-
-            if (isLeaf(root))
-            {
-                fputc(getCharacter(root), archivoCambiado);
-                caracteresDecodificados++;
-                root = getRoot(heapDecodificacion);
+            FILE *archivoSalida = fopen(routeFile, "w");
+            if (archivoSalida == NULL) {
+                printf("Error al crear el archivo extraído: %s\n", routeFile);
+                break;
             }
-        }
-    }
 
-    free(fileName);
-    fclose(archivoHuffmanBinario);
-    fclose(archivoCambiado);
+            HeapPriorityQueue *heapDecodificacion = createHeapPriorityQueue();
+            for (int i = 0; i < 256; i++) {
+                if (header.frecuencias[i] > 0) {
+                    Node *node = createNodeFreq(header.caracteres[i], header.frecuencias[i]);
+                    insert(heapDecodificacion, &node);
+                }
+            }
+
+            convertHuffman(heapDecodificacion);
+            Node *root = getRoot(heapDecodificacion);
+
+            int caracteresDecodificados = 0;
+            int c;
+
+            while (caracteresDecodificados < header.originalSize &&
+                (c = fgetc(archivoHuffmanBinario)) != EOF) {
+
+                for (int i = 7; i >= 0 && caracteresDecodificados < header.originalSize; i--) {
+                    int bit = (c >> i) & 1;
+                    root = (bit == 0) ? getLeftNode(root) : getRightNode(root);
+
+                    if (isLeaf(root)) {
+                        fputc(getCharacter(root), archivoSalida);
+                        caracteresDecodificados++;
+                        root = getRoot(heapDecodificacion);
+                    }
+                }
+            }
+
+            fclose(archivoSalida);
+            destroyHeapPriorityQueue(heapDecodificacion);
+        }
+
+        fclose(archivoHuffmanBinario);
+        printf("¡Proceso de descompresión finalizado exitosamente!\n");
+
 }
 
 void encryptFiles(char * route, FILE * huffmanFile) {
@@ -443,12 +421,12 @@ StatRecord* decompressAllFiles(char *selected_directory) {
 
     char folderName[1024];
     char * newFolder = "decompressed";
-    snprintf(folderName, sizeof(folderName), "%s/%s", selected_directoryA, newFolder); //Nueva carpeta en donde vivirá el .huff
+    snprintf(folderName, sizeof(folderName), "%s/%s", selected_directoryAD, newFolder); //Nueva carpeta en donde vivirá el .huff
     mkdir(folderName, 0777);
 
 
     struct dirent *entrada;
-
+    FILE *archivoHuffmanBinario;
 
     char folderFileName[512];
     int i = 0;
@@ -468,13 +446,18 @@ StatRecord* decompressAllFiles(char *selected_directory) {
         
         if (strstr(entrada->d_name, ".huff") != NULL) {
             snprintf(folderFileName, sizeof(folderFileName), "%s/%s", selected_directoryAD, entrada->d_name);
+            FILE *archivoHuffmanBinario = fopen(folderFileName, "rb");
+            if (archivoHuffmanBinario == NULL) {
+                printf("Error al abrir el archivo contenedor: %s\n", folderFileName);
+                return NULL;
+            }
+
             printf("Archivo: %s\n", folderFileName);
-            huffmanToText(folderFileName);   
+            huffmanToText(folderName, archivoHuffmanBinario);   
             i++;     
         }
     }
     clock_gettime(CLOCK_MONOTONIC, &start);
-
     record->decompress_time_s = elapsedTime(start, end);
 
     return record;
