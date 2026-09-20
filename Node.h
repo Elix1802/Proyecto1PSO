@@ -4,6 +4,8 @@
 typedef struct Node Node;
 
 Node* createNode(char name);
+Node* createNodeFreq(char name, double freq);
+
 void destroyNode(Node* self);
 
 // Setters
