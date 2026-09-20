@@ -83,27 +83,31 @@ void addHeader(binaryHeader * header, FILE * archivo) {
     }
 }
 
-void writeBits(char *codigo, FILE *archivo, unsigned char *buffer_bits, int *conteoBits)
+void writeBytes(char *codigo, FILE *archivo, int *conteoFinal)
 {
     if (codigo == NULL)
         return;
 
+    unsigned char buffer_bits = 0;
+    int conteoBits = 0;
     for (int i = 0; codigo[i] != '\0'; i++)
     {
-        *buffer_bits <<= 1;
+        buffer_bits <<= 1;
 
-        if (codigo[i] == '1')
-            *buffer_bits |= 1;
+        if (codigo[i] == '1'){
+            buffer_bits |= 1;
+        }
 
-        (*conteoBits)++;
+        conteoBits++;
 
-        if (*conteoBits == 8)
-        {
-            fputc(*buffer_bits, archivo);
-            *buffer_bits = 0;
-            *conteoBits = 0;
+        if (conteoBits == 8){
+            fputc(buffer_bits, archivo);
+            buffer_bits = 0;
+            conteoBits = 0;
         }
     }
+
+    *conteoFinal = conteoBits;
 }
 
 void writeFileEncrypted(char *route, HashTableFreq *hashTableFreq, Dictionary *dictionary)
@@ -141,20 +145,23 @@ void writeFileEncrypted(char *route, HashTableFreq *hashTableFreq, Dictionary *d
         return;
     }
 
-        int c;
-    unsigned char buffer_bits = 0;
-    int conteoBits = 0;
+    int c;
+    int conteoFinal = 0;
     while ((c = fgetc(archivoRead)) != EOF)
     {
         char *value = getDictionaryValue(dictionary, c);
-        writeBits(value, archivo, &buffer_bits, &conteoBits);
+        writeBytes(value, archivo, &conteoFinal);
     }
 
+    unsigned char buffer_bits = 0;
+
     //Exceso
-    if (conteoBits > 0)
-    {
-        buffer_bits <<= (8 - conteoBits);
+    if (conteoFinal > 0){
+
+        buffer_bits<<=(8-conteoFinal);
         fputc(buffer_bits, archivo);
+        buffer_bits = 0;
+        conteoFinal = 0;
     }
 
     free(fileName);
@@ -285,7 +292,7 @@ int main()
     display(heap);
     generateCodes(getNodes(heap)[0], dictionary, (char *)malloc(256), 0);
     printDictionaryValues(dictionary);
-    writeFileEncrypted("descompressed/Coscu.txt", hashTableFreq, dictionary);
+    writeFileEncrypted("books/Coscu.txt", hashTableFreq, dictionary);
 
     huffmanToText("compressed/Coscu.bin", heap);
 
