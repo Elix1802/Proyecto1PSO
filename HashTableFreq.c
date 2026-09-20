@@ -99,6 +99,17 @@ int getFrequencyById(HashTableFreq * self, int index){
     return -1;
 }
 
+//Función que devuelve la frecuencia de un nodo segun su id en el arreglo
+//Si la posición está vacía devuelve -1;
+
+char getCharById(HashTableFreq * self, int index){
+    if(self != NULL) {
+        if(self->nodes[index] != NULL) return getCharacter(self->nodes[index]);
+        else return '\0';
+
+    }
+    return '\0';
+}
 //Devuelve la frecuencia de un nodo.
 Node * getHashTableFreqNode(HashTableFreq * self,  Node * node){
     if(self != NULL) {

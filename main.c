@@ -16,6 +16,7 @@ struct BinaryHeader {
     char md5[33];
     int originalSize;
     int frecuencias[256];
+    char caracteres[256];
 };
 
 typedef struct {
@@ -72,6 +73,7 @@ void createHeader (HashTableFreq *hashTableFreq, binaryHeader * header, char * r
     strcpy(header->md5, resultado.hex);
     header->originalSize = getTotalCharsCounted(hashTableFreq); //total de caracteres
     for(int i = 0; i<256;i++) {
+        header->caracteres[i] = getCharById(hashTableFreq, i);
         header->frecuencias[i] = getFrequencyById(hashTableFreq, i);
     }
 
@@ -286,7 +288,7 @@ int main()
     HashTableFreq *hashTableFreq = createHashTableFreq();
     HeapPriorityQueue *heap = createHeapPriorityQueue();
     Dictionary *dictionary = createDictionary();
-    readFile("books/Coscu.txt", hashTableFreq);
+    readFile("books/001_Moby Dick; Or, The Whale by Herman Melville (19082.txt", hashTableFreq);
     HashTableToHeap(hashTableFreq, heap);
     display(heap);
     convertHuffman(heap);
@@ -294,10 +296,10 @@ int main()
     generateCodes(getNodes(heap)[0], dictionary, (char *)malloc(256), 0);
     printDictionaryValues(dictionary);
     putchar('L');
-    writeFileEncrypted("books/Coscu.txt", hashTableFreq, dictionary);
+    writeFileEncrypted("books/001_Moby Dick; Or, The Whale by Herman Melville (19082.txt", hashTableFreq, dictionary);
 
     
-    huffmanToText("compressed/Coscu.bin", heap);
+    huffmanToText("compressed/001_Moby Dick; Or, The Whale by Herman Melville (19082.bin", heap);
 
     return 0;
 }

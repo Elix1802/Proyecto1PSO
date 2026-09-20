@@ -18,5 +18,6 @@ void printHashTableFreq(HashTableFreq * self);
 
 int getTotalCharsCounted(HashTableFreq * self);
 int getFrequencyById(HashTableFreq * self, int index);
+char getCharById(HashTableFreq * self, int index);
 
 #endif
