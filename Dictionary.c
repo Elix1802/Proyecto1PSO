@@ -33,7 +33,7 @@ Dictionary * createDictionary() {
     return dictionary;
 }
 
-void destroy(Dictionary * self) {
+void destroyDictionary(Dictionary * self) {
     if(self != NULL) {
         for (int i = 0; i < DIC_SIZE; i++) {
             if(self->values[i] != NULL) {

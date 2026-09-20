@@ -4,6 +4,8 @@
 #include "Dictionary.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <dirent.h>
+
 #include <string.h>
 #include "MD5/md5.h"
 #include "MD5/metadata.h"
@@ -294,29 +296,100 @@ void huffmanToText(char* route)
     fclose(archivoCambiado);
 }
 
+void encryptFiles(char * route) {
+    HashTableFreq *hashTableFreq = createHashTableFreq();
+    HeapPriorityQueue *heap = createHeapPriorityQueue();
+    Dictionary *dictionary = createDictionary();
+
+    readFile(route, hashTableFreq);
+    HashTableToHeap(hashTableFreq, heap);
+
+    convertHuffman(heap);
+    generateCodes(getNodes(heap)[0], dictionary, (char *)malloc(256), 0);
+    writeFileEncrypted(route, hashTableFreq, dictionary);
+
+    destroyDictionary(dictionary);
+    destroyHashTableFreq(hashTableFreq);
+    //destroyHeapPriorityQueue(heap);
+}
+
+
+void compressAllFiles() {
+    DIR * dir = opendir("./books");
+
+    if (dir == NULL) {
+        perror("Error al abrir el directorio");
+        return;
+    }
+
+    struct dirent *entrada;
+    char * dirName = "books";
+
+    char folderFileName[512];
+
+    int i = 0;
+
+    while ((entrada = readdir(dir)) != NULL) {
+
+        if(i == 5) break;
+
+        if (!strcmp(entrada->d_name, ".") || !strcmp(entrada->d_name, "..")) {
+            continue;
+        }
+
+        snprintf(folderFileName, sizeof(folderFileName), "%s/%s", dirName, entrada->d_name);
+        printf("Archivo: %s\n", folderFileName);
+        encryptFiles(folderFileName);
+        i++;
+    }
+
+}
+
+void decompressAllFiles() {
+    DIR * dir = opendir("./compressed");
+
+    if (dir == NULL) {
+        perror("Error al abrir el directorio");
+        return;
+    }
+
+
+    char * dirName = "compressed";
+    struct dirent *entrada;
+
+
+    char folderFileName[512];
+    int i = 0;
+
+    while ((entrada = readdir(dir)) != NULL) {
+
+        if(i == 5) break;
+
+        if (!strcmp(entrada->d_name, ".") || !strcmp(entrada->d_name, "..")) {
+            continue;
+        }
+
+        snprintf(folderFileName, sizeof(folderFileName), "%s/%s", dirName, entrada->d_name);
+        printf("Archivo: %s\n", folderFileName);
+        huffmanToText(folderFileName);
+        i++;
+    }
+
+}
+
 
 int main()
-{
+{  
+
+
+    compressAllFiles();
+
+    decompressAllFiles();
+
+
+    //char * books = "books/";
+
     /*
-    Node * node = createNode('z');
-    Node * leftNode = createNode('a');
-    Node * rightNode = createNode('g');
-    HashTableFreq * hashTableFreq = createHashTableFreq();
-    addHashTableFreqNode(hashTableFreq, node);
-    addHashTableFreqNode(hashTableFreq, leftNode);
-    addHashTableFreqNode(hashTableFreq, rightNode);
-    printHashTableFreq(hashTableFreq);
-*/
-
-    // addRep(node, 12);
-    // addLeftNode(node, leftNode);
-    // addRightNode(node, rightNode);
-    // float freq = getFreq(node);
-    // Node * left = getLeftNode(node);
-    // printf("Caracter: %c\n", getCharacter(left));
-
-    // destroyHashTableFreq(hashTableFreq);
-
     HashTableFreq *hashTableFreq = createHashTableFreq();
     HeapPriorityQueue *heap = createHeapPriorityQueue();
     Dictionary *dictionary = createDictionary();
@@ -331,7 +404,7 @@ int main()
     writeFileEncrypted("books/001_Moby Dick; Or, The Whale by Herman Melville (19082.txt", hashTableFreq, dictionary);
 
     
-    huffmanToText("compressed/001_Moby Dick; Or, The Whale by Herman Melville (19082.bin");
+    huffmanToText("compressed/001_Moby Dick; Or, The Whale by Herman Melville (19082.bin", heap);
 
     HashResultado resultado = obtenerHashArchivo("books/001_Moby Dick; Or, The Whale by Herman Melville (19082.txt");
     printf("Hash MD5 del archivo original: %s\n", resultado.hex);
@@ -339,7 +412,7 @@ int main()
     int iguales = !strcmp(resultado.hex,resultadoBinario.hex ); //Devolverá cero si son iguales
     printf("Hash MD5 del archivo comprimido: %s\n", resultadoBinario.hex);
     printf("Iguales: %d\n", iguales);
-
+    */
 
     return 0;
 }
