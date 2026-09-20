@@ -24,6 +24,19 @@ struct Node * createNode(char name) {
     return node;
 }
 
+struct Node * createNodeFreq(char name, double freq) {
+    Node * node = (Node*) malloc(sizeof(Node));
+    if(node == NULL) return NULL;
+    node->character = name;
+    node->rep = 0;
+    node->freq = freq;
+    node->isFather = 0;
+    node->leftNode = NULL;
+    node->rightNode = NULL;
+
+    return node;
+}
+
 void destroyNode(Node * self) {
     if(self != NULL) {
         free(self);

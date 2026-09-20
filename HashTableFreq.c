@@ -90,7 +90,7 @@ Node** getHashTableFreq(HashTableFreq * self) {
 //Función que devuelve la frecuencia de un nodo segun su id en el arreglo
 //Si la posición está vacía devuelve -1;
 
-int getFrequencyById(HashTableFreq * self, int index){
+double getFrequencyById(HashTableFreq * self, int index){
     if(self != NULL) {
         if(self->nodes[index] != NULL) return getFreq(self->nodes[index]);
         else return -1;
