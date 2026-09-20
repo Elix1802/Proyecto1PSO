@@ -50,13 +50,13 @@ void addHeader(binaryHeader *header, FILE *archivo);
 // Manejo de Lectura/Escritura de Archivos y Bits
 void readFile(char *route, HashTableFreq *hashTableFreq);
 void writeBits(char *codigo, FILE *archivo, unsigned char *buffer_bits, int *conteoBits);
-void writeFileEncrypted(char *route, HashTableFreq *hashTableFreq, Dictionary *dictionary);
+void writeFileEncrypted(char *route, HashTableFreq *hashTableFreq, Dictionary *dictionary, FILE * huffmanFile);
 
 // Algoritmos de Conversión y Árbol de Huffman
 void HashTableToHeap(HashTableFreq *hashTableFreq, HeapPriorityQueue *heap);
 void generateCodes(Node *node, Dictionary *dictionary, char *code, int depth);
 void huffmanToText(char *route);
-void encryptFiles(char *route);
+void encryptFiles(char *route, FILE * huffmanFile);
 
 // Funciones de Procesamiento por Lote (Directorio)
 StatRecord* compressAllFiles(char *selected_directory);

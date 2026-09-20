@@ -64,6 +64,15 @@ void createHeader (HashTableFreq *hashTableFreq, binaryHeader * header, char * r
     HashResultado resultado = obtenerHashArchivo(route);
     strcpy(header->md5, resultado.hex);
     header->originalSize = getTotalCharsCounted(hashTableFreq);
+
+    //filenameSection
+    char *delimitadorCarpeta = strrchr(route, '/');
+    const char *fileNameCleaned = delimitadorCarpeta ? delimitadorCarpeta + 1 : route;
+
+    strncpy(header->fileName, fileNameCleaned, sizeof(header->fileName) - 1);
+    header->fileName[sizeof(header->fileName) - 1] = '\0';
+
+
     for(int i = 0; i < 256; i++) {
         header->caracteres[i] = getCharById(hashTableFreq, i);
         header->frecuencias[i] = getFrequencyById(hashTableFreq, i);
@@ -99,10 +108,10 @@ void writeBits(char *codigo, FILE *archivo, unsigned char *buffer_bits, int *con
     }
 }
 
-void writeFileEncrypted(char *route, HashTableFreq *hashTableFreq, Dictionary *dictionary)
+void writeFileEncrypted(char *route, HashTableFreq *hashTableFreq, Dictionary *dictionary, FILE * huffmanFile)
 {
     //Sección de creación de rutas
-    FILE *archivoRead = fopen(route, "r");
+    FILE *archivoRead = fopen(route, "rb");
 
     if (archivoRead == NULL)
     {
@@ -110,40 +119,11 @@ void writeFileEncrypted(char *route, HashTableFreq *hashTableFreq, Dictionary *d
         return;
     }
 
-    char folderName[1024];
-    char *folderNamePtr = "compressed";
-    snprintf(folderName, sizeof(folderName), "%s/%s", selected_directoryA, folderNamePtr);
-    mkdir(folderName, 0777);
-
-
-    // Cambiamos strchr por strrchr para encontrar el último slash '/'
-    char *delimitadorCarpeta = strrchr(route, '/');
-    char *fileName = strdup(delimitadorCarpeta ? delimitadorCarpeta + 1 : route);
-
-    char *delimitadorFormato = strrchr(fileName, '.');
-    if (delimitadorFormato) {
-        *delimitadorFormato = '\0';
-    }
-    char routeFile[1024];
-
-    snprintf(routeFile, sizeof(routeFile), "%s/%s.bin", folderName, fileName);
-
-    //FIn de creación de rutas
-
-    FILE *archivo = fopen(routeFile, "wb");
-
-    if (archivo == NULL)
-    {
-        printf("Error al abrir el archivo.\n");
-        free(fileName);
-        fclose(archivoRead);
-        return;
-    }
 
     binaryHeader * header = malloc(sizeof(binaryHeader));
 
     createHeader(hashTableFreq, header, route);
-    addHeader(header, archivo);
+    addHeader(header, huffmanFile);
 
     int c;
     unsigned char buffer_bits = 0;
@@ -151,20 +131,18 @@ void writeFileEncrypted(char *route, HashTableFreq *hashTableFreq, Dictionary *d
     while ((c = fgetc(archivoRead)) != EOF)
     {
         char *value = getDictionaryValue(dictionary, c);
-        writeBits(value, archivo, &buffer_bits, &conteoBits);
+        writeBits(value, huffmanFile, &buffer_bits, &conteoBits);
     }
 
     //Exceso
     if (conteoBits > 0)
     {
         buffer_bits <<= (8 - conteoBits);
-        fputc(buffer_bits, archivo);
+        fputc(buffer_bits, huffmanFile);
     }
 
-    free(fileName);
     free(header);
     fclose(archivoRead);
-    fclose(archivo);
     return;
 }
 
@@ -291,7 +269,7 @@ void huffmanToText(char* route)
     fclose(archivoCambiado);
 }
 
-void encryptFiles(char * route) {
+void encryptFiles(char * route, FILE * huffmanFile) {
     HashTableFreq *hashTableFreq = createHashTableFreq();
     HeapPriorityQueue *heap = createHeapPriorityQueue();
     Dictionary *dictionary = createDictionary();
@@ -301,7 +279,7 @@ void encryptFiles(char * route) {
 
     convertHuffman(heap);
     generateCodes(getNodes(heap)[0], dictionary, (char *)malloc(256), 0);
-    writeFileEncrypted(route, hashTableFreq, dictionary);
+    writeFileEncrypted(route, hashTableFreq, dictionary, huffmanFile);
 
     destroyDictionary(dictionary);
     destroyHashTableFreq(hashTableFreq);
@@ -314,29 +292,63 @@ StatRecord* compressAllFiles(char *selected_directory) {
     DIR * dir =  opendir(selected_directory);
 
     if (dir == NULL) {
-        dir =  opendir("./books");
+        selected_directory = "./books";
+        dir = opendir(selected_directory);
+    }
+
+
+    char folderName[1024];
+    char * newFolder = "compressed";
+    snprintf(folderName, sizeof(folderName), "%s/%s", selected_directoryA, newFolder);
+    mkdir(folderName, 0777);
+
+
+    char huffFileNameRoute[1024]; //Nombre del archivo huff en el directorio actual
+    char *fileName = "books";
+    snprintf(huffFileNameRoute, sizeof(huffFileNameRoute), "%s/%s.huff", folderName, fileName);
+
+
+
+
+    FILE * huffmanFile =  fopen(huffFileNameRoute, "wb");
+
+    if (huffmanFile == NULL) {
+        perror("Error al crear libros.huff");
+        closedir(dir);
+        return NULL;
     }
 
     struct dirent *entrada;
-
-    char folderFileName[512];
-
+    char folderFileName[512]; //NOmbre del documento actual en su directorio
     int i = 0;
+
 
     while ((entrada = readdir(dir)) != NULL) {
 
-        if(i == 5) break;
+        if (strstr(entrada->d_name, ".huff") != NULL) {
+            continue;
+        }
 
+        if (entrada->d_type == DT_DIR) {
+            continue;
+        }   
+        
         if (!strcmp(entrada->d_name, ".") || !strcmp(entrada->d_name, "..")) {
             continue;
         }
 
+        if(i == 5) break;
+
         snprintf(folderFileName, sizeof(folderFileName), "%s/%s", selected_directoryA, entrada->d_name);
         printf("Archivo: %s\n", folderFileName);
-        encryptFiles(folderFileName);
+        encryptFiles(folderFileName, huffmanFile);
         i++;
     }
 
+    fclose(huffmanFile);
+
+    return NULL;
+    
 }
 
 void decompressAllFiles(char *selected_directory) {
