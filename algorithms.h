@@ -42,6 +42,8 @@ typedef struct {
 // Prototipos de Funciones
 // -------------------------------------------------------------------
 
+double elapsedTime(struct timespec start, struct timespec end);
+
 // Utilidades de Hash y Metadatos
 HashResultado obtenerHashArchivo(const char *archivo);
 void createHeader(HashTableFreq *hashTableFreq, binaryHeader *header, char *route);
