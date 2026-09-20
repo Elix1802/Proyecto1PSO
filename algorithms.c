@@ -338,7 +338,7 @@ StatRecord* compressAllFiles(char *selected_directory) {
 
     while ((entrada = readdir(dir)) != NULL) {
 
-        if (i == 5) break;
+        //if (i == 5) break;
 
         if (!strcmp(entrada->d_name, ".") || !strcmp(entrada->d_name, "..")) {
             continue;
