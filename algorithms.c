@@ -342,7 +342,7 @@ StatRecord* compressAllFiles(char *selected_directory) {
     record->filesSize = 0.0;
 
     struct timespec start, end;
-    clock_gettime(CLOCK_MONOTONIC, &start);
+    
     selected_directoryA = selected_directory;
     DIR * dir =  opendir(selected_directory);
 
@@ -357,7 +357,7 @@ StatRecord* compressAllFiles(char *selected_directory) {
     int i = 0;
 
     while ((entrada = readdir(dir)) != NULL) {
-
+        clock_gettime(CLOCK_MONOTONIC, &start);
         if(i == 5) break;
 
         if (!strcmp(entrada->d_name, ".") || !strcmp(entrada->d_name, "..")) {
@@ -377,10 +377,31 @@ StatRecord* compressAllFiles(char *selected_directory) {
         }
 
         encryptFiles(folderFileName);
+
+        clock_gettime(CLOCK_MONOTONIC, &end);
+        record->compress_time_s += elapsedTime(start, end);
+
+        char compressedFileName[1024];
+        char baseName[512];
+        strncpy(baseName, entrada->d_name, sizeof(baseName) - 1);
+        baseName[sizeof(baseName) - 1] = '\0';
+
+        char *dot = strrchr(baseName, '.');
+        if (dot) *dot = '\0';
+
+        snprintf(compressedFileName, sizeof(compressedFileName),
+                "%s/compressed/%s.bin", selected_directoryA, baseName);
+
+        struct stat compressedStat;
+        if (stat(compressedFileName, &compressedStat) == 0) {
+            double compressedSizeKB = compressedStat.st_size / 1000.0;
+            record->compressedSize += compressedSizeKB; 
+        } else {
+            perror("stat (archivo comprimido)");
+        }
         i++;
     }
-    clock_gettime(CLOCK_MONOTONIC, &end);
-    record->compress_time_s = elapsedTime(start, end);
+    
     return record;
 }
 
