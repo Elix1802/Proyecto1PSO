@@ -5,9 +5,41 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include "MD5/md5.h"
+#include "MD5/metadata.h"
+
 
 #include <sys/stat.h>
 #include <sys/types.h>
+
+struct BinaryHeader {
+    char md5[33];
+    int originalSize;
+    int frecuencias[256];
+};
+
+typedef struct {
+    char     hex[33]; 
+    
+} HashResultado;
+
+typedef struct BinaryHeader binaryHeader;
+
+
+HashResultado obtenerHashArchivo(const char *archivo) {
+    HashResultado resultado;
+    unsigned char md5[MD5_DIGEST_SIZE];
+    if (md5_file(archivo, md5) != 0) {
+        fprintf(stderr, "Error: no se pudo calcular el hash MD5 del archivo %s\n", archivo);
+        resultado.hex[0] = '\0';
+        return resultado;
+    }
+    md5_to_hex(md5, resultado.hex);
+    return resultado;
+}
+
+
+//Sección de archivos
 
 void readFile(char *route, HashTableFreq *hashTableFreq)
 {
@@ -33,6 +65,20 @@ void readFile(char *route, HashTableFreq *hashTableFreq)
     // printHashTableFreq(hashTableFreq);
     printf("\nCantidad de caracteres: %d\n", cant);
     return;
+}
+
+void createHeader (HashTableFreq *hashTableFreq, binaryHeader * header, char * route) {
+    HashResultado resultado = obtenerHashArchivo(route);
+    strcpy(header->md5, resultado.hex);
+    header->originalSize = getTotalCharsCounted(hashTableFreq); //total de caracteres
+    for(int i = 0; i<256;i++) {
+        header->frecuencias[i] = getFrequencyById(hashTableFreq, i);
+    }
+
+}
+
+void addHeader(binaryHeader * header, FILE * archivo) {
+    fwrite(&header, sizeof(header), 1, archivo);
 }
 
 void writeBytes(char *codigo, FILE *archivo, int *conteoFinal)
@@ -62,22 +108,32 @@ void writeBytes(char *codigo, FILE *archivo, int *conteoFinal)
     *conteoFinal = conteoBits;
 }
 
-void writeFileEncrypted(char *route, Dictionary *dictionary)
+void writeFileEncrypted(char *route, HashTableFreq *hashTableFreq, Dictionary *dictionary)
 {
+    //Sección de creación de rutas
     FILE *archivoRead = fopen(route, "r");
 
     char *folderName = "compressed";
     mkdir(folderName, 0777);
 
-    char *filename = "";
-    char *delimitador = strchr(route, '/');
-    char *fileName = strdup(delimitador + 1);
+    char *delimitadorCarpeta = strchr(route, '/');
+    char *fileName = strdup(delimitadorCarpeta ? delimitadorCarpeta + 1 : route);
+
+    char *delimitadorFormato = strrchr(fileName, '.');
+    if (delimitadorFormato) {
+        *delimitadorFormato = '\0';
+    }
     char routeFile[1024];
+    //printf("%s", fileName);
 
     snprintf(routeFile, sizeof(routeFile), "%s/%s", folderName, fileName);
-    printf("%s", routeFile);
 
     FILE *archivo = fopen(routeFile, "wb");
+    binaryHeader * header = malloc(sizeof(binaryHeader));
+
+    createHeader(hashTableFreq, header, routeFile);
+    addHeader(header, archivo);
+
 
     if (archivo == NULL)
     {
@@ -104,11 +160,15 @@ void writeFileEncrypted(char *route, Dictionary *dictionary)
         conteoFinal = 0;
     }
 
+    free(fileName);
+    free(header);
     fclose(archivoRead);
     fclose(archivo);
     return;
 }
 
+
+//Sección de algoritmos
 void HashTableToHeap(HashTableFreq *hashTableFreq, HeapPriorityQueue *heap)
 {
     Node **nodes = getHashTableFreq(hashTableFreq);
@@ -213,9 +273,9 @@ int main()
     display(heap);
     generateCodes(getNodes(heap)[0], dictionary, (char *)malloc(256), 0);
     printDictionaryValues(dictionary);
-    writeFileEncrypted("books/002_Pride and Prejudice by Jane Austen (186807).txt", dictionary);
+    writeFileEncrypted("books/002_Pride and Prejudice by Jane Austen (186807).txt", hashTableFreq, dictionary);
 
-    huffmanToText("books/Corán.txt", heap);
+    //huffmanToText("books/Corán.txt", heap);
 
     return 0;
 }

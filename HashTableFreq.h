@@ -16,4 +16,7 @@ Node ** getHashTableFreq(HashTableFreq * self);
 Node * getHashTableFreqNode(HashTableFreq * self,  Node * node);
 void printHashTableFreq(HashTableFreq * self);
 
+int getTotalCharsCounted(HashTableFreq * self);
+int getFrequencyById(HashTableFreq * self, int index);
+
 #endif

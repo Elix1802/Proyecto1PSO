@@ -6,6 +6,8 @@
 
 struct HashTableFreq {
     Node ** nodes;
+
+    int totalChar;
     int total;
 };
 
@@ -29,6 +31,7 @@ HashTableFreq * createHashTableFreq() {
     }
 
     hashTableFreq->total = 0;
+    hashTableFreq->totalChar = 0;
 
     return hashTableFreq;
 }
@@ -62,6 +65,7 @@ void addHashTableFreqNode(HashTableFreq * self, Node * node){
 }
 
 void updateHashTableFreqNode(HashTableFreq * self, int total) {
+    self->totalChar = total;
     if(self != NULL) {
         for(int i = 0; i < ARRAY_SIZE; i++) {
             if(self->nodes[i] != NULL) {
@@ -83,6 +87,19 @@ Node** getHashTableFreq(HashTableFreq * self) {
     return NULL;
 }
 
+//Función que devuelve la frecuencia de un nodo segun su id en el arreglo
+//Si la posición está vacía devuelve -1;
+
+int getFrequencyById(HashTableFreq * self, int index){
+    if(self != NULL) {
+        if(self->nodes[index] != NULL) return getFreq(self->nodes[index]);
+        else return -1;
+
+    }
+    return -1;
+}
+
+//Devuelve la frecuencia de un nodo.
 Node * getHashTableFreqNode(HashTableFreq * self,  Node * node){
     if(self != NULL) {
         int index = hashFunction(getCharacter(node));
@@ -105,6 +122,14 @@ void printHashTableFreq(HashTableFreq * self) {
 int totalNodesHashTable(HashTableFreq * self) {
     if(self!=NULL) {
         return self->total;
+    }
+
+    return -1;
+}
+
+int getTotalCharsCounted(HashTableFreq * self) {
+    if(self!=NULL) {
+        return self->totalChar;
     }
 
     return -1;
