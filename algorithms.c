@@ -310,6 +310,11 @@ void encryptFiles(char * route) {
 
 
 StatRecord* compressAllFiles(char *selected_directory) {
+    StatRecord* record = NULL;
+    record->decompAcceleration = 0.0;
+    record->decompress_time_s = 0.0;
+    record->method = "Basic";
+
     selected_directoryA = selected_directory;
     DIR * dir =  opendir(selected_directory);
 
