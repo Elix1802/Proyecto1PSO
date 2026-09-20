@@ -319,8 +319,11 @@ int main()
 
     HashResultado resultado = obtenerHashArchivo("books/001_Moby Dick; Or, The Whale by Herman Melville (19082.txt");
     printf("Hash MD5 del archivo original: %s\n", resultado.hex);
-    HashResultado resultadoBinario = obtenerHashArchivo("descompressed/Descomprimido.txt");
+    HashResultado resultadoBinario = obtenerHashArchivo("descompressed/001_Moby Dick; Or, The Whale by Herman Melville (19082.txt");
+    int iguales = !strcmp(resultado.hex,resultadoBinario.hex ); //Devolverá cero si son iguales
     printf("Hash MD5 del archivo comprimido: %s\n", resultadoBinario.hex);
+    printf("Iguales: %d\n", iguales);
+
 
     return 0;
 }
