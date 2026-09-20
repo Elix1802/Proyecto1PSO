@@ -15,19 +15,8 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-struct BinaryHeader {
-    char md5[33];
-    int originalSize;
-    double frecuencias[256];
-    char caracteres[256];
-};
-
-typedef struct {
-    char     hex[33]; 
-    
-} HashResultado;
-
-typedef struct BinaryHeader binaryHeader;
+static char *selected_directoryA = NULL;
+static char *selected_directoryAD = NULL;
 
 
 HashResultado obtenerHashArchivo(const char *archivo) {
@@ -121,10 +110,15 @@ void writeFileEncrypted(char *route, HashTableFreq *hashTableFreq, Dictionary *d
         return;
     }
 
-    char *folderName = "compressed";
+    char folderName[1024];
+    char *folderNamePtr = "compressed";
+    snprintf(folderName, sizeof(folderName), "%s/%s", selected_directoryA, folderNamePtr);
+    printf("AAAAAA%sAAAAAAAA", folderName);
     mkdir(folderName, 0777);
 
-    char *delimitadorCarpeta = strchr(route, '/');
+
+    // Cambiamos strchr por strrchr para encontrar el último slash '/'
+    char *delimitadorCarpeta = strrchr(route, '/');
     char *fileName = strdup(delimitadorCarpeta ? delimitadorCarpeta + 1 : route);
 
     char *delimitadorFormato = strrchr(fileName, '.');
@@ -132,7 +126,7 @@ void writeFileEncrypted(char *route, HashTableFreq *hashTableFreq, Dictionary *d
         *delimitadorFormato = '\0';
     }
     char routeFile[1024];
-    //printf("%s", fileName);
+    printf("OLALALLA%s H", fileName);
 
     snprintf(routeFile, sizeof(routeFile), "%s/%s.bin", folderName, fileName);
 
@@ -228,10 +222,13 @@ void huffmanToText(char* route)
 {
     FILE *archivoHuffmanBinario = fopen(route, "rb");
 
-    char *folderName = "descompressed";
+    char folderName[1024];
+    char *folderNamePtr = "decompressed";
+    snprintf(folderName, sizeof(folderName), "%s/%s", selected_directoryAD, folderNamePtr);
+    printf("BBBBBBB%sBBBBBBBBBB", folderName);
     mkdir(folderName, 0777);
 
-    char *delimitadorCarpeta = strchr(route, '/');
+    char *delimitadorCarpeta = strrchr(route, '/');
     char *fileName = strdup(delimitadorCarpeta ? delimitadorCarpeta + 1 : route);
 
     char *delimitadorFormato = strrchr(fileName, '.');
@@ -239,6 +236,7 @@ void huffmanToText(char* route)
         *delimitadorFormato = '\0';
     }
     char routeFile[1024];
+    printf("CCCCCCCC%s CCCCCCC", fileName);
 
     snprintf(routeFile, sizeof(routeFile), "%s/%s.txt", folderName, fileName);
 
@@ -315,16 +313,15 @@ void encryptFiles(char * route) {
 }
 
 
-void compressAllFiles() {
-    DIR * dir = opendir("./books");
+void compressAllFiles(char *selected_directory) {
+    selected_directoryA = selected_directory;
+    DIR * dir =  opendir(selected_directory);
 
     if (dir == NULL) {
-        perror("Error al abrir el directorio");
-        return;
+        dir =  opendir("./books");
     }
 
     struct dirent *entrada;
-    char * dirName = "books";
 
     char folderFileName[512];
 
@@ -338,7 +335,7 @@ void compressAllFiles() {
             continue;
         }
 
-        snprintf(folderFileName, sizeof(folderFileName), "%s/%s", dirName, entrada->d_name);
+        snprintf(folderFileName, sizeof(folderFileName), "%s/%s", selected_directoryA, entrada->d_name);
         printf("Archivo: %s\n", folderFileName);
         encryptFiles(folderFileName);
         i++;
@@ -346,16 +343,15 @@ void compressAllFiles() {
 
 }
 
-void decompressAllFiles() {
-    DIR * dir = opendir("./compressed");
+void decompressAllFiles(char *selected_directory) {
+    selected_directoryAD = selected_directory;
+
+    DIR * dir =  opendir(selected_directoryAD);
 
     if (dir == NULL) {
-        perror("Error al abrir el directorio");
-        return;
+        dir =  opendir("./compressed");
     }
 
-
-    char * dirName = "compressed";
     struct dirent *entrada;
 
 
@@ -370,7 +366,7 @@ void decompressAllFiles() {
             continue;
         }
 
-        snprintf(folderFileName, sizeof(folderFileName), "%s/%s", dirName, entrada->d_name);
+        snprintf(folderFileName, sizeof(folderFileName), "%s/%s", selected_directoryAD, entrada->d_name);
         printf("Archivo: %s\n", folderFileName);
         huffmanToText(folderFileName);
         i++;

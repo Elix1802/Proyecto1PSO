@@ -45,7 +45,7 @@ void huffmanToText(char *route);
 void encryptFiles(char *route);
 
 // Funciones de Procesamiento por Lote (Directorio)
-void compressAllFiles(void);
-void decompressAllFiles(void);
+void compressAllFiles(char *selected_directory);
+void decompressAllFiles(char *selected_directory);
 
 #endif // ALGORITHMS_H

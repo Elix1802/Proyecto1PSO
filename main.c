@@ -1,4 +1,5 @@
 #include <gtk/gtk.h>
+#include "algorithms.h"
 
 static char *selected_directory = NULL;
 
@@ -96,15 +97,16 @@ static void on_compress_button_clicked(GtkButton *button, gpointer user_data) {
         g_print("Atención: No hay una carpeta seleccionada para comprimir.\n");
         return;
     }
-    
+    compressAllFiles(selected_directory);
     g_print("Comprimiendo carpeta: %s\n", selected_directory);
 }
 
 static void on_decompress_button_clicked(GtkButton *button, gpointer user_data) {
     if (selected_directory == NULL) {
         g_print("Atención: No hay una carpeta seleccionada para descomprimir.\n");
-        return;
+        //return;
     }
+    decompressAllFiles(selected_directory);
     g_print("Descomprimiendo carpeta: %s\n", selected_directory);
 }
 
