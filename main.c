@@ -1,7 +1,61 @@
 #include <gtk/gtk.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+
 #include "algorithms.h"
 
 static char *selected_directory = NULL;
+
+typedef struct {
+    GtkWidget *loading_dialog;
+    pid_t child_pid;
+} CompressionTaskData;
+
+static void on_child_finished(GPid pid, gint status, gpointer user_data) {
+    CompressionTaskData *task = (CompressionTaskData *)user_data;
+
+    if (WIFEXITED(status)) {
+        g_print("Proceso hijo [%d] finalizó con código: %d\n", pid, WEXITSTATUS(status));
+    } else {
+        g_printerr("Proceso hijo [%d] terminó de forma no esperada.\n", pid);
+    }
+
+    if (GTK_IS_WIDGET(task->loading_dialog)) {
+        gtk_window_destroy(GTK_WINDOW(task->loading_dialog));
+    }
+
+    g_spawn_close_pid(pid);
+    g_free(task);
+}
+
+static GtkWidget* create_loading_dialog(GtkWindow *parent, int mode) {
+    GtkWidget *dialog = gtk_window_new();
+    gtk_window_set_title(GTK_WINDOW(dialog), "");
+    gtk_window_set_transient_for(GTK_WINDOW(dialog), parent);
+    gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+    gtk_window_set_default_size(GTK_WINDOW(dialog), 280, 120);
+    gtk_window_set_deletable(GTK_WINDOW(dialog), FALSE); // Evita que la cierren manualmente
+
+    GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 12);
+    gtk_widget_set_margin_top(vbox, 20);
+    gtk_widget_set_margin_bottom(vbox, 20);
+    gtk_widget_set_margin_start(vbox, 20);
+    gtk_widget_set_margin_end(vbox, 20);
+    
+    GtkWidget *label;
+    if (mode == 1) label = gtk_label_new("Compressing files, please wait...");
+    else label = gtk_label_new("Uncompressing files, please wait...");
+
+    GtkWidget *spinner = gtk_spinner_new();
+    gtk_spinner_start(GTK_SPINNER(spinner));
+
+    gtk_box_append(GTK_BOX(vbox), label);
+    gtk_box_append(GTK_BOX(vbox), spinner);
+
+    gtk_window_set_child(GTK_WINDOW(dialog), vbox);
+    return dialog;
+}
 
 
 
@@ -84,20 +138,80 @@ static void on_open_button_clicked(GtkButton *button, gpointer user_data) {
 
 static void on_compress_button_clicked(GtkButton *button, gpointer user_data) {
     if (selected_directory == NULL) {
-        g_print("Atención: No hay una carpeta seleccionada para comprimir.\n");
+            g_print("Atención: No hay una carpeta seleccionada para comprimir.\n");
+            return;
+    }
+
+    GtkWindow *parent_window = GTK_WINDOW(user_data);
+
+    pid_t pid = fork();
+
+    if (pid < 0) {
+        g_printerr("Error al crear el proceso hijo con fork()\n");
         return;
     }
-    compressAllFiles(selected_directory);
-    g_print("Comprimiendo carpeta: %s\n", selected_directory);
+
+    if (pid == 0) {
+
+        g_print("[Hijo %d] Iniciando compresión en: %s\n", getpid(), selected_directory);
+        
+        compressAllFiles(selected_directory);
+
+        g_print("[Hijo %d] Compresión completada.\n", getpid());
+        
+        _exit(0);
+    } else {
+
+        g_print("[Padre] Hijo lanzado con PID: %d. Mostrando spinner...\n", pid);
+
+        GtkWidget *loading_dialog = create_loading_dialog(parent_window, 1);
+        gtk_window_present(GTK_WINDOW(loading_dialog));
+
+        CompressionTaskData *task = g_new(CompressionTaskData, 1);
+        task->loading_dialog = loading_dialog;
+        task->child_pid = pid;
+
+        g_child_watch_add(pid, on_child_finished, task);
+    }
 }
 
 static void on_decompress_button_clicked(GtkButton *button, gpointer user_data) {
     if (selected_directory == NULL) {
         g_print("Atención: No hay una carpeta seleccionada para descomprimir.\n");
-        //return;
+        return;
     }
-    decompressAllFiles(selected_directory);
-    g_print("Descomprimiendo carpeta: %s\n", selected_directory);
+    GtkWindow *parent_window = GTK_WINDOW(user_data);
+
+    pid_t pid = fork();
+
+    if (pid < 0) {
+        g_printerr("Error al crear el proceso hijo con fork()\n");
+        return;
+    }
+
+    if (pid == 0) {
+
+        g_print("[Hijo %d] Iniciando compresión en: %s\n", getpid(), selected_directory);
+        
+        decompressAllFiles(selected_directory);
+
+        g_print("[Hijo %d] Compresión completada.\n", getpid());
+        
+        _exit(0);
+
+    } else {
+
+        g_print("[Padre] Hijo lanzado con PID: %d. Mostrando spinner...\n", pid);
+
+        GtkWidget *loading_dialog = create_loading_dialog(parent_window, 2);
+        gtk_window_present(GTK_WINDOW(loading_dialog));
+
+        CompressionTaskData *task = g_new(CompressionTaskData, 1);
+        task->loading_dialog = loading_dialog;
+        task->child_pid = pid;
+
+        g_child_watch_add(pid, on_child_finished, task);
+    }
 }
 
 static void activate(GtkApplication *app, gpointer user_data) {
