@@ -18,12 +18,12 @@
             <property name="margin-bottom">5</property>
             <property name="spacing">16</property>
             <child>
-              <object class="GtkButton">
+              <object class="GtkButton" id="btnOpenFile">
                 <property name="label">📁 Select directory</property>
               </object>
             </child>
             <child>
-              <object class="GtkLabel">
+              <object class="GtkLabel" id="lblDirectory">
                 <property name="label">No directory selected</property>
               </object>
             </child>
@@ -35,8 +35,6 @@
             <property name="spacing">40</property>
             <child>
               <object class="GtkButton" id="btnCompress">
-                <property name="css-classes">btnCompress
-</property>
                 <property name="label">⬇️ Compress </property>
               </object>
             </child>
