@@ -96,6 +96,7 @@ static void on_compress_button_clicked(GtkButton *button, gpointer user_data) {
         g_print("Atención: No hay una carpeta seleccionada para comprimir.\n");
         return;
     }
+    
     g_print("Comprimiendo carpeta: %s\n", selected_directory);
 }
 
