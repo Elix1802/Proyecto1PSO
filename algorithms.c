@@ -20,6 +20,26 @@
 static char *selected_directoryA = NULL;
 static char *selected_directoryAD = NULL;
 
+/**
+ * Function which shows how many miliseconds and nanoseconds
+ * have passed between the execution of the algorithm
+ */
+double elapsedTime(struct timespec start, struct timespec end)
+{
+    long seconds = end.tv_sec - start.tv_sec;
+    long nanoseconds = end.tv_nsec - start.tv_nsec;
+
+    if (nanoseconds < 0)
+    {
+        seconds--;
+        nanoseconds += 1000000000L;
+    }
+
+    double elapsed_ns = (seconds * 1e9) + nanoseconds;
+    double elapsed_ms = elapsed_ns / 1e6;
+
+    return elapsed_ms;
+}
 
 HashResultado obtenerHashArchivo(const char *archivo) {
     HashResultado resultado;
@@ -312,10 +332,15 @@ void encryptFiles(char * route) {
 
 
 StatRecord* compressAllFiles(char *selected_directory) {
-    StatRecord* record = NULL;
+    StatRecord* record = (StatRecord*) malloc(sizeof(StatRecord));
+    if (record == NULL) return NULL;
+    
     record->decompAcceleration = 0.0;
     record->decompress_time_s = 0.0;
     record->method = "Basic";
+    record->radius = 999.999;
+    record->filesSize = 0.0;
+
     struct timespec start, end;
     clock_gettime(CLOCK_MONOTONIC, &start);
     selected_directoryA = selected_directory;
@@ -339,12 +364,24 @@ StatRecord* compressAllFiles(char *selected_directory) {
             continue;
         }
 
+        struct stat fileStat;
+
         snprintf(folderFileName, sizeof(folderFileName), "%s/%s", selected_directoryA, entrada->d_name);
         printf("Archivo: %s\n", folderFileName);
+
+        if (stat(folderFileName, &fileStat) == 0) {
+            double sizeKB = fileStat.st_size / 1000.0;
+            record->filesSize += sizeKB;
+        } else {
+            perror("stat");
+        }
+
         encryptFiles(folderFileName);
         i++;
     }
     clock_gettime(CLOCK_MONOTONIC, &end);
+    record->compress_time_s = elapsedTime(start, end);
+    return record;
 }
 
 void decompressAllFiles(char *selected_directory) {
