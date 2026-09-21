@@ -216,10 +216,13 @@ void generateCodes(Node *node, Dictionary *dictionary, char *code, int depth)
         depth + 1);
 }
 
-void huffmanToText(char* route,  FILE *archivoHuffmanBinario)
+float huffmanToText(char* route,  FILE *archivoHuffmanBinario)
 {
     binaryHeader header;   
+    float health = 0.0;
+    float files = 0.0;
     while (fread(&header, sizeof(binaryHeader), 1, archivoHuffmanBinario) == 1) {
+            files ++;
             printf("Extrayendo: %s (MD5: %s)\n", header.fileName, header.md5);
 
             char routeFile[1024];
@@ -259,7 +262,10 @@ void huffmanToText(char* route,  FILE *archivoHuffmanBinario)
                     }
                 }
             }
-
+            HashResultado result = obtenerHashArchivo(routeFile);
+            if (strcmp(result.hex, header.md5)) {
+                health += 1.0;
+            }
             fclose(archivoSalida);
             destroyHeapPriorityQueue(heapDecodificacion);
         }
@@ -267,7 +273,9 @@ void huffmanToText(char* route,  FILE *archivoHuffmanBinario)
         fclose(archivoHuffmanBinario);
         printf("¡Proceso de descompresión finalizado exitosamente!\n");
 
+    return health/files;
 }
+
 
 void encryptFiles(char * route, FILE * huffmanFile) {
     HashTableFreq *hashTableFreq = createHashTableFreq();
@@ -298,6 +306,7 @@ StatRecord* compressAllFiles(char *selected_directory) {
     record->radius = 999.999;
     record->filesSize = 0.0;
     record->compressedSize = 0.0;
+    record->healthPercentage = "0%";
 
     struct timespec start, end;
     
@@ -403,6 +412,9 @@ StatRecord* decompressAllFiles(char *selected_directory) {
     record->filesSize = 0.0;
     record->compressedSize = 0.0;
 
+    float health = 0.0;
+    char healthP[10];
+
     struct timespec start, end;
 
     selected_directoryAD = selected_directory;
@@ -462,7 +474,9 @@ StatRecord* decompressAllFiles(char *selected_directory) {
             }
 
             printf("Archivo: %s\n", folderFileName);
-            huffmanToText(folderName, archivoHuffmanBinario);
+            health = huffmanToText(folderName, archivoHuffmanBinario);
+            
+            snprintf(healthP, sizeof(healthP), "%.2f", health * 100);
             
             i++;
         }
@@ -472,6 +486,7 @@ StatRecord* decompressAllFiles(char *selected_directory) {
 
     clock_gettime(CLOCK_MONOTONIC, &end);
     record->decompress_time_s = elapsedTime(start, end);
+    record->healthPercentage = healthP;
 
 
     if (i!=0) {

@@ -57,7 +57,7 @@ void writeFileEncrypted(char *route, HashTableFreq *hashTableFreq, Dictionary *d
 // Algoritmos de Conversión y Árbol de Huffman
 void HashTableToHeap(HashTableFreq *hashTableFreq, HeapPriorityQueue *heap);
 void generateCodes(Node *node, Dictionary *dictionary, char *code, int depth);
-void huffmanToText(char *route, FILE *archivoHuffmanBinario);
+float huffmanToText(char *route, FILE *archivoHuffmanBinario);
 void encryptFiles(char *route, FILE * huffmanFile);
 
 // Funciones de Procesamiento por Lote (Directorio)
