@@ -278,6 +278,10 @@ float huffmanToText(char* route,  FILE *archivoHuffmanBinario)
     return health/files;
 }
 
+float huffmanToTextThread(char* route,  FILE *archivoHuffmanBinario){
+    
+    return 0.0;
+}
 
 void encryptFiles(char * route, FILE * huffmanFile) {
     HashTableFreq *hashTableFreq = createHashTableFreq();
@@ -658,4 +662,89 @@ StatRecord* decompressAllFiles(char *selected_directory) {
 
     else return NULL;
 
+}
+
+StatRecord* decompressAllFilesThread(char *selected_directory) {
+        StatRecord* record = (StatRecord*) malloc(sizeof(StatRecord));
+    if (record == NULL) return NULL;
+
+    record->decompAcceleration = 0.0;
+    record->decompress_time_s = 0.0;
+    record->compress_time_s = 0.0;
+    record->method = "Basic";
+    record->radius = 999.999;
+    record->filesSize = 0.0;
+    record->compressedSize = 0.0;
+
+    float health = 0.0;
+    char healthP[10];
+
+    struct timespec start, end;
+
+    selected_directoryAD = selected_directory;
+
+    DIR * dir = opendir(selected_directoryAD);
+
+    if (dir == NULL) {
+        selected_directory = "./compressed";
+        selected_directoryAD = selected_directory;
+        dir = opendir(selected_directoryAD);
+        if (dir == NULL) {
+            free(record);
+            return NULL;
+        }
+    }
+
+    char folderName[1024];
+    char * newFolder = "decompressedThread";
+
+    struct dirent *entrada;
+
+    char folderFileName[512];
+    int i = 0; //Contador de huff
+
+    clock_gettime(CLOCK_MONOTONIC, &start);
+
+    while ((entrada = readdir(dir)) != NULL) {
+
+        if (!strcmp(entrada->d_name, ".") || !strcmp(entrada->d_name, "..")) {
+            continue;
+        }
+
+        if (entrada->d_type == DT_DIR) {
+            continue;
+        }
+
+        if (strstr(entrada->d_name, ".huff") != NULL) {
+            snprintf(folderName, sizeof(folderName), "%s/%s", selected_directoryAD, newFolder);
+            mkdir(folderName, 0777);
+            snprintf(folderFileName, sizeof(folderFileName), "%s/%s", selected_directoryAD, entrada->d_name);
+
+        
+            struct stat huffStat;
+            if (stat(folderFileName, &huffStat) == 0) {
+                record->compressedSize += huffStat.st_size / 1000.0;
+            } else {
+                perror("stat (.huff)");
+            }
+
+            FILE *archivoHuffmanBinario = fopen(folderFileName, "rb");
+            if (archivoHuffmanBinario == NULL) {
+                printf("Error al abrir el archivo contenedor: %s\n", folderFileName);
+                closedir(dir);
+                free(record);
+                return NULL;
+            }
+
+            health = huffmanToText(folderName, archivoHuffmanBinario);
+            
+            snprintf(healthP, sizeof(healthP), "%.2f", health * 100);
+            
+            i++;
+        }
+    }
+
+    closedir(dir);
+
+    
 }
