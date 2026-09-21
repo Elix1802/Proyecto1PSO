@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <dirent.h>
+#include <pthread.h>
 
 #include <string.h>
 #include "MD5/md5.h"
@@ -19,6 +20,7 @@
 
 static char *selected_directoryA = NULL;
 static char *selected_directoryAD = NULL;
+
 
 /**
  * Function which shows how many miliseconds and nanoseconds
@@ -294,6 +296,25 @@ void encryptFiles(char * route, FILE * huffmanFile) {
     destroyHeapPriorityQueue(heap);
 }
 
+void encryptFilesThread(char * route, FILE * huffmanFile, entradaHilo * entrada) {
+    HashTableFreq *hashTableFreq = createHashTableFreq();
+    HeapPriorityQueue *heap = createHeapPriorityQueue();
+    Dictionary *dictionary = createDictionary();
+
+    readFile(route, hashTableFreq);
+    HashTableToHeap(hashTableFreq, heap);
+
+    convertHuffman(heap);
+    generateCodes(getNodes(heap)[0], dictionary, (char *)malloc(256), 0);
+
+    pthread_mutex_lock(entrada->mutexFile);
+    writeFileEncrypted(route, hashTableFreq, dictionary, huffmanFile);
+    pthread_mutex_unlock(entrada->mutexFile);
+
+    destroyDictionary(dictionary);
+    destroyHashTableFreq(hashTableFreq);
+    destroyHeapPriorityQueue(heap);
+}
 
 StatRecord* compressAllFiles(char *selected_directory) {
     StatRecord* record = (StatRecord*) malloc(sizeof(StatRecord));
@@ -398,7 +419,25 @@ StatRecord* compressAllFiles(char *selected_directory) {
     return record;
 }
 
-/** 
+
+void *writtingThread(void*arg) {
+    entradaHilo * entrada = (entradaHilo*) arg;
+    for (int i = entrada->inicio; i< entrada->final; i++) {
+        struct dirent * document = entrada->nameList[i];
+        if (strcmp(document->d_name, ".") != 0 && strcmp(document->d_name, "..") != 0) { 
+            char fullPath[1024];
+            snprintf(fullPath, sizeof(fullPath), "%s/%s", selected_directoryA, document->d_name);
+            struct stat statbuf;
+            if (stat(fullPath, &statbuf) == 0 && S_ISREG(statbuf.st_mode)) {
+                encryptFiles(fullPath, entrada->huffmanFile);
+            }
+        
+        }
+
+    }
+    return NULL;
+}
+ 
 StatRecord* compressAllFilesThreads(char *selected_directory) {
     StatRecord* record = (StatRecord*) malloc(sizeof(StatRecord));
     if (record == NULL) return NULL;
@@ -412,7 +451,16 @@ StatRecord* compressAllFilesThreads(char *selected_directory) {
     record->compressedSize = 0.0;
 
     struct timespec start, end;
-    
+    int threadNumber = 8;
+    int limitG1 = 12;
+    int limitG2 = 13;
+
+    double * resultChilds[threadNumber];
+    pthread_t threads[threadNumber];
+    entradaHilo entradas[threadNumber];
+    pthread_mutex_t huffmanFileMutex = PTHREAD_MUTEX_INITIALIZER;
+
+
     selected_directoryA = selected_directory;
     DIR * dir = opendir(selected_directory);
 
@@ -450,64 +498,52 @@ StatRecord* compressAllFilesThreads(char *selected_directory) {
         perror("Error al leer el directorio");
         return NULL;
     }
+    
+
+    //Variables que represetan por cual sección del arreglo de archivos vamos
+    int inicio = 0;
+    int final = limitG1;
 
     char folderFileName[512]; // Nombre del documento actual en su directorio
     int i = 0;
 
-    while ((entrada = readdir(dir)) != NULL) {
+    for (int i = 0; i<threadNumber; i++) {
+        entradas[i].inicio = inicio;
+        entradas[i].final = final;
+        entradas[i].nameList = nameList;
+        entradas[i].huffmanFile = huffmanFile;
+        entradas[i].mutexFile = &huffmanFileMutex;
+        if(i<4){
 
-        //if (i == 5) break;
+            pthread_create(&threads[i], NULL, writtingThread, (void *)&entradas[i]);
+            if(i!=3) {
+                inicio += limitG1;
+                final += limitG1;
+            } else {
+                inicio += limitG1;
+                final += limitG2;
+            }
 
-        if (!strcmp(entrada->d_name, ".") || !strcmp(entrada->d_name, "..")) {
-            continue;
+        }else {
+            pthread_create(&threads[i], NULL, writtingThread, (void *)&entradas[i]);
+                inicio += limitG2;
+                final += limitG2;
         }
-
-        // Ignorar subcarpetas
-        if (entrada->d_type == DT_DIR) {
-            continue;
-        }   
-
-        if (strstr(entrada->d_name, ".huff") != NULL) {
-            continue;
-        }
-
-        clock_gettime(CLOCK_MONOTONIC, &start);
-
-        snprintf(folderFileName, sizeof(folderFileName), "%s/%s", selected_directoryA, entrada->d_name);
-        printf("Archivo: %s\n", folderFileName);
-
-        // Mide el tamaño del archivo original
-        struct stat fileStat;
-        if (stat(folderFileName, &fileStat) == 0) {
-            double sizeKB = fileStat.st_size / 1000.0;
-            record->filesSize += sizeKB;
-        } else {
-            perror("stat");
-        }
-
-        encryptFiles(folderFileName, huffmanFile);
-
-        clock_gettime(CLOCK_MONOTONIC, &end);
-        record->compress_time_s += elapsedTime(start, end);
-
-        i++;
+    }
+    
+    for(int i =0; i<threadNumber; i++) {
+        pthread_join(threads[i], NULL);
     }
 
     fclose(huffmanFile);
-    closedir(dir);
+    free(nameList);
 
-    // Mide el tamaño total final del archivo .huff generado
-    struct stat compressedStat;
-    if (stat(huffFileNameRoute, &compressedStat) == 0) {
-        record->compressedSize = compressedStat.st_size / 1000.0; 
-    } else {
-        perror("stat (archivo comprimido)");
-    }
+    closedir(dir);
 
     return record;
 }
 
-*/
+
 StatRecord* decompressAllFiles(char *selected_directory) {
 
     StatRecord* record = (StatRecord*) malloc(sizeof(StatRecord));

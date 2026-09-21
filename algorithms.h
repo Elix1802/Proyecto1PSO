@@ -2,6 +2,8 @@
 #define ALGORITHMS_H
 
 #include <stdio.h>
+#include <pthread.h>
+
 #include "dataStructs/Node.h"
 #include "dataStructs/HeapPriorityQueue.h"
 #include "dataStructs/HashTableFreq.h"
@@ -18,6 +20,15 @@ struct BinaryHeader {
     double frecuencias[256];
     char caracteres[256];
 };
+
+
+typedef struct {
+    int inicio;
+    int final; 
+    struct dirent **nameList;
+    FILE * huffmanFile;
+    pthread_mutex_t *mutexFile;
+} entradaHilo;
 
 
 typedef struct {
@@ -59,6 +70,7 @@ void HashTableToHeap(HashTableFreq *hashTableFreq, HeapPriorityQueue *heap);
 void generateCodes(Node *node, Dictionary *dictionary, char *code, int depth);
 float huffmanToText(char *route, FILE *archivoHuffmanBinario);
 void encryptFiles(char *route, FILE * huffmanFile);
+void encryptFilesThread(char * route, FILE * huffmanFile, entradaHilo * entrada);
 
 // Funciones de Procesamiento por Lote (Directorio)
 StatRecord* compressAllFiles(char *selected_directory);
