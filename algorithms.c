@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <dirent.h>
 #include <pthread.h>
+#include <unistd.h>
 
 #include <string.h>
 #include "MD5/md5.h"
@@ -300,25 +301,6 @@ void encryptFiles(char * route, FILE * huffmanFile) {
     destroyHeapPriorityQueue(heap);
 }
 
-void encryptFilesThread(char * route, FILE * huffmanFile, entradaHilo * entrada) {
-    HashTableFreq *hashTableFreq = createHashTableFreq();
-    HeapPriorityQueue *heap = createHeapPriorityQueue();
-    Dictionary *dictionary = createDictionary();
-
-    readFile(route, hashTableFreq);
-    HashTableToHeap(hashTableFreq, heap);
-
-    convertHuffman(heap);
-    generateCodes(getNodes(heap)[0], dictionary, (char *)malloc(256), 0);
-
-    pthread_mutex_lock(entrada->mutexFile);
-    writeFileEncrypted(route, hashTableFreq, dictionary, huffmanFile);
-    pthread_mutex_unlock(entrada->mutexFile);
-
-    destroyDictionary(dictionary);
-    destroyHashTableFreq(hashTableFreq);
-    destroyHeapPriorityQueue(heap);
-}
 
 StatRecord* compressAllFiles(char *selected_directory) {
     StatRecord* record = (StatRecord*) malloc(sizeof(StatRecord));
@@ -360,7 +342,7 @@ StatRecord* compressAllFiles(char *selected_directory) {
     FILE * huffmanFile = fopen(huffFileNameRoute, "wb");
 
     if (huffmanFile == NULL) {
-        perror("Error al crear libros.huff");
+        perror("Error al crear books.huff");
         closedir(dir);
         free(record);
         return NULL;
@@ -424,6 +406,28 @@ StatRecord* compressAllFiles(char *selected_directory) {
 }
 
 
+void encryptFilesThread(char * route, FILE * huffmanFile, entradaHilo * entrada) {
+    HashTableFreq *hashTableFreq = createHashTableFreq();
+    HeapPriorityQueue *heap = createHeapPriorityQueue();
+    Dictionary *dictionary = createDictionary();
+
+    readFile(route, hashTableFreq);
+    HashTableToHeap(hashTableFreq, heap);
+
+    convertHuffman(heap);
+    generateCodes(getNodes(heap)[0], dictionary, (char *)malloc(256), 0);
+
+    pthread_mutex_lock(entrada->mutexFile);
+    writeFileEncrypted(route, hashTableFreq, dictionary, huffmanFile);
+    pthread_mutex_unlock(entrada->mutexFile);
+
+    destroyDictionary(dictionary);
+    destroyHashTableFreq(hashTableFreq);
+    destroyHeapPriorityQueue(heap);
+}
+
+
+
 void *writtingThread(void*arg) {
     entradaHilo * entrada = (entradaHilo*) arg;
     for (int i = entrada->inicio; i< entrada->final; i++) {
@@ -433,7 +437,7 @@ void *writtingThread(void*arg) {
             snprintf(fullPath, sizeof(fullPath), "%s/%s", selected_directoryA, document->d_name);
             struct stat statbuf;
             if (stat(fullPath, &statbuf) == 0 && S_ISREG(statbuf.st_mode)) {
-                encryptFiles(fullPath, entrada->huffmanFile);
+                encryptFilesThread(fullPath, entrada->huffmanFile, entrada);
             }
         
         }
@@ -490,7 +494,7 @@ StatRecord* compressAllFilesThreads(char *selected_directory) {
     FILE * huffmanFile = fopen(huffFileNameRoute, "wb");
 
     if (huffmanFile == NULL) {
-        perror("Error al crear libros.huff");
+        perror("Error al crear books.huff");
         closedir(dir);
         free(record);
         return NULL;
@@ -547,6 +551,112 @@ StatRecord* compressAllFilesThreads(char *selected_directory) {
     return record;
 }
 
+
+//Fork functions
+void writtingFork(entradaHilo entrada) {
+    for (int i = entrada.inicio; i< entrada.final; i++) {
+        struct dirent * document = entrada.nameList[i];
+        if (strcmp(document->d_name, ".") != 0 && strcmp(document->d_name, "..") != 0) { 
+            char fullPath[1024];
+            snprintf(fullPath, sizeof(fullPath), "%s/%s", selected_directoryA, document->d_name);
+            struct stat statbuf;
+            if (stat(fullPath, &statbuf) == 0 && S_ISREG(statbuf.st_mode)) {
+                encryptFiles(fullPath, entrada.huffmanFile);
+            }
+        
+        }
+
+    }
+}
+ 
+
+StatRecord* compressAllFilesFork(char * selected_directory){
+    StatRecord* record = (StatRecord*) malloc(sizeof(StatRecord));
+    if (record == NULL) return NULL;
+    
+    record->decompAcceleration = 0.0;
+    record->decompress_time_s = 0.0;
+    record->compress_time_s = 0.0;
+    record->method = "Basic";
+    record->radius = 999.999;
+    record->filesSize = 0.0;
+    record->compressedSize = 0.0;
+
+    struct timespec start, end;
+    int processNumber = 2;
+    int inicio = 0;
+    int final = 50;
+
+    double * resultChilds[processNumber];
+    entradaHilo entradas[processNumber];
+
+
+    selected_directoryA = selected_directory;
+    DIR * dir = opendir(selected_directory);
+
+    if (dir == NULL) {
+        selected_directory = "./books";
+        selected_directoryA = selected_directory;
+        dir = opendir(selected_directory);
+        if (dir == NULL) {
+            free(record);
+            return NULL;
+        }
+    }
+
+    char folderName[1024];
+    char * newFolder = "compressedFork";
+    snprintf(folderName, sizeof(folderName), "%s/%s", selected_directoryA, newFolder); //Nueva carpeta en donde vivirá el .huff
+    mkdir(folderName, 0777);
+
+    char huffFileNameRoute[1024]; // Nombre del archivo huff en el directorio actual
+    char *fileName = "books";
+    snprintf(huffFileNameRoute, sizeof(huffFileNameRoute), "%s/%s.huff", folderName, fileName);
+
+    FILE * huffmanFile = fopen(huffFileNameRoute, "wb");
+
+    if (huffmanFile == NULL) {
+        perror("Error al crear books.huff");
+        closedir(dir);
+        free(record);
+        return NULL;
+    }
+
+    struct dirent **nameList;
+    int n = scandir(selected_directoryA, &nameList, NULL, alphasort);
+    if (n < 0) {
+        perror("Error al leer el directorio");
+        return NULL;
+    }
+
+    for (int i = 0; i<processNumber; i++) {
+        entradas[i].inicio = inicio;
+        entradas[i].final = final;
+        entradas[i].nameList = nameList;
+        entradas[i].huffmanFile = huffmanFile;
+        inicio += 50;
+        final += 50;
+    }
+
+    pid_t pid = fork();
+    
+    if (pid < 0) {
+        perror("Error al crear el proceso");
+        closedir(dir);
+        free(record);
+        return NULL;
+    }
+
+    if(pid == 0) {
+        writtingFork(entradas[0]);
+    }
+
+    else {
+        writtingFork(entradas[1]);
+    }
+    
+    return NULL;
+}
 
 StatRecord* decompressAllFiles(char *selected_directory) {
 

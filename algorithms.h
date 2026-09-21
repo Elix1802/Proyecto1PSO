@@ -77,5 +77,7 @@ StatRecord* compressAllFiles(char *selected_directory);
 StatRecord* decompressAllFiles(char *selected_directory);
 
 StatRecord* compressAllFilesThreads(char *selected_directory);
+StatRecord* compressAllFilesFork(char * selected_directory);
+
 
 #endif // ALGORITHMS_H
