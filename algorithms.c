@@ -398,7 +398,116 @@ StatRecord* compressAllFiles(char *selected_directory) {
     return record;
 }
 
+/** 
+StatRecord* compressAllFilesThreads(char *selected_directory) {
+    StatRecord* record = (StatRecord*) malloc(sizeof(StatRecord));
+    if (record == NULL) return NULL;
+    
+    record->decompAcceleration = 0.0;
+    record->decompress_time_s = 0.0;
+    record->compress_time_s = 0.0;
+    record->method = "Basic";
+    record->radius = 999.999;
+    record->filesSize = 0.0;
+    record->compressedSize = 0.0;
 
+    struct timespec start, end;
+    
+    selected_directoryA = selected_directory;
+    DIR * dir = opendir(selected_directory);
+
+    if (dir == NULL) {
+        selected_directory = "./books";
+        selected_directoryA = selected_directory;
+        dir = opendir(selected_directory);
+        if (dir == NULL) {
+            free(record);
+            return NULL;
+        }
+    }
+
+    char folderName[1024];
+    char * newFolder = "compressedThread";
+    snprintf(folderName, sizeof(folderName), "%s/%s", selected_directoryA, newFolder); //Nueva carpeta en donde vivirá el .huff
+    mkdir(folderName, 0777);
+
+    char huffFileNameRoute[1024]; // Nombre del archivo huff en el directorio actual
+    char *fileName = "books";
+    snprintf(huffFileNameRoute, sizeof(huffFileNameRoute), "%s/%s.huff", folderName, fileName);
+
+    FILE * huffmanFile = fopen(huffFileNameRoute, "wb");
+
+    if (huffmanFile == NULL) {
+        perror("Error al crear libros.huff");
+        closedir(dir);
+        free(record);
+        return NULL;
+    }
+
+    struct dirent **nameList;
+    int n = scandir(selected_directoryA, &nameList, NULL, alphasort);
+    if (n < 0) {
+        perror("Error al leer el directorio");
+        return NULL;
+    }
+
+    char folderFileName[512]; // Nombre del documento actual en su directorio
+    int i = 0;
+
+    while ((entrada = readdir(dir)) != NULL) {
+
+        //if (i == 5) break;
+
+        if (!strcmp(entrada->d_name, ".") || !strcmp(entrada->d_name, "..")) {
+            continue;
+        }
+
+        // Ignorar subcarpetas
+        if (entrada->d_type == DT_DIR) {
+            continue;
+        }   
+
+        if (strstr(entrada->d_name, ".huff") != NULL) {
+            continue;
+        }
+
+        clock_gettime(CLOCK_MONOTONIC, &start);
+
+        snprintf(folderFileName, sizeof(folderFileName), "%s/%s", selected_directoryA, entrada->d_name);
+        printf("Archivo: %s\n", folderFileName);
+
+        // Mide el tamaño del archivo original
+        struct stat fileStat;
+        if (stat(folderFileName, &fileStat) == 0) {
+            double sizeKB = fileStat.st_size / 1000.0;
+            record->filesSize += sizeKB;
+        } else {
+            perror("stat");
+        }
+
+        encryptFiles(folderFileName, huffmanFile);
+
+        clock_gettime(CLOCK_MONOTONIC, &end);
+        record->compress_time_s += elapsedTime(start, end);
+
+        i++;
+    }
+
+    fclose(huffmanFile);
+    closedir(dir);
+
+    // Mide el tamaño total final del archivo .huff generado
+    struct stat compressedStat;
+    if (stat(huffFileNameRoute, &compressedStat) == 0) {
+        record->compressedSize = compressedStat.st_size / 1000.0; 
+    } else {
+        perror("stat (archivo comprimido)");
+    }
+
+    return record;
+}
+
+*/
 StatRecord* decompressAllFiles(char *selected_directory) {
 
     StatRecord* record = (StatRecord*) malloc(sizeof(StatRecord));
