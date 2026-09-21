@@ -64,4 +64,6 @@ void encryptFiles(char *route, FILE * huffmanFile);
 StatRecord* compressAllFiles(char *selected_directory);
 StatRecord* decompressAllFiles(char *selected_directory);
 
+StatRecord* compressAllFilesThreads(char *selected_directory);
+
 #endif // ALGORITHMS_H
