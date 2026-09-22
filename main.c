@@ -155,7 +155,7 @@ static void on_compress_button_clicked(GtkButton *button, gpointer user_data) {
 
         g_print("[Hijo %d] Iniciando compresión en: %s\n", getpid(), selected_directory);
         
-        compressAllFilesFork(selected_directory);
+        compressAllFilesThreads(selected_directory);
 
         g_print("[Hijo %d] Compresión completada.\n", getpid());
         
@@ -193,9 +193,10 @@ static void on_decompress_button_clicked(GtkButton *button, gpointer user_data) 
 
         g_print("[Hijo %d] Iniciando compresión en: %s\n", getpid(), selected_directory);
         
-        StatRecord* record = decompressAllFiles(selected_directory);
+        //StatRecord* record = decompressAllFiles(selected_directory);
+        decompressAllFilesThread(selected_directory);
 
-        g_print("[Salud %s].\n", record->healthPercentage);
+        //g_print("[Salud %s].\n", record->healthPercentage);
         
         _exit(0);
 

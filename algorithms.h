@@ -13,14 +13,19 @@
 // Estructuras
 // -------------------------------------------------------------------
 
-struct BinaryHeader {
+typedef struct  {
     char fileName[128];
     char md5[33];
     int originalSize;
     double frecuencias[256];
     char caracteres[256];
-};
+    long compressedSize;
+} binaryHeader;
 
+typedef struct {
+    binaryHeader header;
+    long offsetData;
+} FileIndex;
 
 typedef struct {
     int inicio;
@@ -29,6 +34,14 @@ typedef struct {
     FILE * huffmanFile;
     pthread_mutex_t *mutexFile;
 } entradaHilo;
+
+typedef struct {
+    int inicio;
+    int final; 
+    char folderFileName[2048];
+    FileIndex * index;
+    char route[2048];
+} entradaHiloDes;
 
 typedef struct {
     int inicio;
@@ -50,7 +63,6 @@ typedef struct {
     double radius;
 } StatRecord;
 
-typedef struct BinaryHeader binaryHeader;
 
 typedef struct {
     char hex[33]; 
@@ -84,7 +96,11 @@ StatRecord* compressAllFiles(char *selected_directory);
 StatRecord* decompressAllFiles(char *selected_directory);
 
 StatRecord* compressAllFilesThreads(char *selected_directory);
+StatRecord* decompressAllFilesThread(char *selected_directory); 
+
 StatRecord* compressAllFilesFork(char * selected_directory);
+
+
 
 
 #endif // ALGORITHMS_H
