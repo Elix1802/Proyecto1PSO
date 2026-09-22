@@ -644,7 +644,7 @@ void encryptFilesFork(char * route, FILE * huffmanFile) {
  */
 
 void writtingFork(entradaProceso entrada) {
-    FILE * huffmanFile = fopen(entrada.huffFileNameRoute, "ab"); //Vamos a escribir en el amiguín
+    FILE * huffmanFile = fopen(entrada.huffFileNameRoute, "r+b"); //Vamos a escribir en el amiguín---- Antes era ab, ahora r+b
     if (!huffmanFile) {
         perror("Error al abrir el archivo contenedor .huff");
         _exit(1);
@@ -711,6 +711,17 @@ StatRecord* compressAllFilesFork(char * selected_directory){
     char huffFileNameRoute[1024]; // Nombre del archivo huff en el directorio actual
     char *fileName = "booksFork";
     snprintf(huffFileNameRoute, sizeof(huffFileNameRoute), "%s/%s.huff", folderName, fileName);
+    //Crear el archivo huff antes de los procesos hijos para que puedan escribir en él
+    FILE * huffmanFile = fopen(huffFileNameRoute, "wb");
+    if (huffmanFile == NULL) {
+        perror("Error al crear booksFork.huff");
+        closedir(dir);
+        free(record);
+        return NULL;
+    }
+    fclose(huffmanFile);
+        
+    
     struct dirent **nameList;
     int n = scandir(selected_directoryA, &nameList, NULL, alphasort);
     if (n < 0) {
@@ -1238,7 +1249,7 @@ StatRecord* decompressAllFilesFork(char *selected_directory) {
 
     char folderName[1024];
     char * newFolder = "decompressedFork";
-    char * searchFile = "booksThread.huff";
+    char * searchFile = "booksFork.huff";
 
     char folderFileName[512];
     int huffCount = 0; //Contador de huff
@@ -1279,7 +1290,11 @@ StatRecord* decompressAllFilesFork(char *selected_directory) {
             FileIndex * huffmanIndex = createHuffmanFileIndex(folderFileName, &totalIndex);
             printf("TotalIndex %d\n", totalIndex);
             printf("Index %s\n", folderFileName);
-
+            if (totalIndex <= 0) {
+                printf("No se encontraron archivos en el índice de Huffman.\n");
+                free(huffmanIndex);
+                continue;
+            }
 
             int mitad = totalIndex / 2;
 
