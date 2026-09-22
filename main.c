@@ -138,8 +138,16 @@ static void on_open_button_clicked(GtkButton *button, gpointer user_data) {
 
 static void on_compress_button_clicked(GtkButton *button, gpointer user_data) {
     if (selected_directory == NULL) {
-            g_print("Atención: No hay una carpeta seleccionada para comprimir.\n");
+        GtkWindow *parent_window = GTK_WINDOW(gtk_widget_get_root(GTK_WIDGET(button)));
+
+        GtkAlertDialog *alert = gtk_alert_dialog_new("%s", "Atención: No hay una carpeta seleccionada para comprimir.");
+        gtk_alert_dialog_show(alert, parent_window);
+        g_object_unref(alert);
+        
+
+ 
             return;
+
     }
 
     GtkWindow *parent_window = GTK_WINDOW(user_data);
