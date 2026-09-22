@@ -99,6 +99,9 @@ StatRecord* compressAllFilesThreads(char *selected_directory);
 StatRecord* decompressAllFilesThread(char *selected_directory); 
 
 StatRecord* compressAllFilesFork(char * selected_directory);
+StatRecord* decompressAllFilesFork(char *selected_directory);
+
+
 
 
 

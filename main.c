@@ -194,7 +194,7 @@ static void on_decompress_button_clicked(GtkButton *button, gpointer user_data) 
         g_print("[Hijo %d] Iniciando compresión en: %s\n", getpid(), selected_directory);
         
         //StatRecord* record = decompressAllFiles(selected_directory);
-        decompressAllFilesThread(selected_directory);
+        decompressAllFilesFork(selected_directory);
 
         //g_print("[Salud %s].\n", record->healthPercentage);
         

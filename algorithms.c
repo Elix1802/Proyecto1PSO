@@ -540,7 +540,6 @@ StatRecord* compressAllFilesThreads(char *selected_directory) {
 
     char folderFileName[512]; // Nombre del documento actual en su directorio
 
-    //Se crea el nameList correcto
     struct dirent *entry;
     int count = 0;
 
@@ -656,8 +655,10 @@ void writtingFork(entradaProceso entrada) {
         if (strcmp(document->d_name, ".") != 0 && strcmp(document->d_name, "..") != 0) { 
             char fullPath[1024];
             snprintf(fullPath, sizeof(fullPath), "%s/%s", selected_directoryA, document->d_name);
+            printf("FullPath %s \n", fullPath);
             struct stat statbuf;
             if (stat(fullPath, &statbuf) == 0 && S_ISREG(statbuf.st_mode)) {
+                printf("i= %d : %s", i, fullPath);
                 encryptFilesFork(fullPath, huffmanFile);
             }
         
@@ -710,25 +711,15 @@ StatRecord* compressAllFilesFork(char * selected_directory){
     char huffFileNameRoute[1024]; // Nombre del archivo huff en el directorio actual
     char *fileName = "booksFork";
     snprintf(huffFileNameRoute, sizeof(huffFileNameRoute), "%s/%s.huff", folderName, fileName);
-
-    FILE * huffmanFile = fopen(huffFileNameRoute, "wb");
-
-    if (huffmanFile == NULL) {
-        perror("Error al crear booksFork.huff");
-        closedir(dir);
-        free(record);
-        return NULL;
-    }
-    fclose(huffmanFile);
-
-    //Sección de nameList, aqui se conoce la cantidad de elementos en la capreta
     struct dirent **nameList;
     int n = scandir(selected_directoryA, &nameList, NULL, alphasort);
     if (n < 0) {
         perror("Error al leer el directorio");
         return NULL;
     }
+        
 
+    //Sección de nameList, aqui se conoce la cantidad de elementos en la capreta
     struct dirent *entry;
     int count = 0;
 
@@ -737,11 +728,25 @@ StatRecord* compressAllFilesFork(char * selected_directory){
             continue;
         }
 
-        nameList[count] = entry;
-        count++;
+        if (strcmp(entry->d_name, "booksFork.huff") == 0) {
+            continue;
+        }
+
+        if (strstr(entry->d_name, ".txt") == NULL) {
+            continue;
+        }
+
+        printf("Index %d: %s\n", count, entry->d_name);
+
+        nameList[count] = malloc(sizeof(struct dirent));
+        if (nameList[count] != NULL) {
+            memcpy(nameList[count], entry, sizeof(struct dirent));
+            count++;
+        }
     }
 
-    int totalArchivos = count - 1; 
+    closedir(dir);
+    int totalArchivos = count; 
     int mitad = totalArchivos / 2;
 
     entradas[0].inicio = 0;
@@ -785,8 +790,11 @@ StatRecord* compressAllFilesFork(char * selected_directory){
 
     waitpid(pid1, NULL, 0);
     waitpid(pid2, NULL, 0);
+    for (int i = 0; i < count; i++) {
+        free(nameList[i]);
+    }
+    free(nameList);
 
-    closedir(dir);
     return record;
 }
 
@@ -1012,7 +1020,8 @@ void * huffmanToTextThread(void * arg){
         }
         processedCount++;
     }
-    
+
+    fclose(myFile);
     return NULL;
 }
 
@@ -1096,7 +1105,6 @@ StatRecord* decompressAllFilesThread(char *selected_directory) {
             FileIndex * huffmanIndex = createHuffmanFileIndex(folderFileName, &totalIndex);
             g_print("Index: %d\n", totalIndex);
             for (int i = 0; i<threadNumber; i++) {
-                g_print("----------------------inicio: %d - fin: %d------------------------\n", inicio, final);
                 entradas[i].inicio = inicio;
                 entradas[i].final = final;
                 strcpy(entradas[i].folderFileName, folderFileName);
@@ -1121,6 +1129,209 @@ StatRecord* decompressAllFilesThread(char *selected_directory) {
             }
         
             snprintf(healthP, sizeof(healthP), "%.2f", health * 100);
+            
+            huffCount++;
+        }
+    }
+    closedir(dir);   
+}
+
+void huffmanToTextFork(entradaHiloDes entrada){
+
+    FILE *myFile = fopen(entrada.folderFileName, "rb");
+    if (!myFile) {
+        perror("Error al abrir el archivo contenedor en el proceso hijo");
+        return;
+    }
+
+    float healthLocal = 0.0;
+    int processedCount = 0;
+
+    for (int i = entrada.inicio; i < entrada.final; i++) {
+        binaryHeader *header = &entrada.index[i].header;
+
+        fseek(myFile, entrada.index[i].offsetData, SEEK_SET);
+
+        char routeFile[1024];
+        snprintf(routeFile, sizeof(routeFile), "%s/%s", entrada.route, header->fileName);
+
+        printf("%s\n", routeFile);
+        FILE *archivoSalida = fopen(routeFile, "wb");
+        if (archivoSalida == NULL) {
+            printf("Error al crear el archivo extraído: %s\n", routeFile);
+            continue;
+        }
+
+        HeapPriorityQueue *heapDecodificacion = createHeapPriorityQueue();
+        for (int j = 0; j < 256; j++) {
+            if (header->frecuencias[j] > 0) {
+                Node *node = createNodeFreq(header->caracteres[j], header->frecuencias[j]);
+                insert(heapDecodificacion, &node);
+            }
+        }
+
+        convertHuffman(heapDecodificacion);
+        Node *root = getRoot(heapDecodificacion);
+
+        int caracteresDecodificados = 0;
+        int c;
+
+        while (caracteresDecodificados < header->originalSize && (c = fgetc(myFile)) != EOF) {
+            for (int bitPos = 7; bitPos >= 0 && caracteresDecodificados < header->originalSize; bitPos--) {
+                int bit = (c >> bitPos) & 1;
+                root = (bit == 0) ? getLeftNode(root) : getRightNode(root);
+
+                if (isLeaf(root)) {
+                    fputc(getCharacter(root), archivoSalida);
+                    caracteresDecodificados++;
+                    root = getRoot(heapDecodificacion);
+                }
+            }
+        }
+
+        fclose(archivoSalida);
+        destroyHeapPriorityQueue(heapDecodificacion);
+
+        HashResultado result = obtenerHashArchivo(routeFile);
+        if (strcmp(result.hex, header->md5) == 0) { 
+            healthLocal += 1.0;
+        }
+        processedCount++;
+    }
+
+    fclose(myFile);
+    
+}
+
+StatRecord* decompressAllFilesFork(char *selected_directory) {
+    StatRecord* record = (StatRecord*) malloc(sizeof(StatRecord));
+    if (record == NULL) return NULL;
+
+    record->decompAcceleration = 0.0;
+    record->decompress_time_s = 0.0;
+    record->compress_time_s = 0.0;
+    record->method = "Basic";
+    record->radius = 999.999;
+    record->filesSize = 0.0;
+    record->compressedSize = 0.0;
+
+    float health = 0.0;
+    char healthP[10];
+
+    struct timespec start, end;
+
+    selected_directoryAD = selected_directory;
+
+    DIR * dir = opendir(selected_directoryAD);
+
+    if (dir == NULL) {
+        selected_directory = "./compressed";
+        selected_directoryAD = selected_directory;
+        dir = opendir(selected_directoryAD);
+        if (dir == NULL) {
+            free(record);
+            return NULL;
+        }
+    }
+
+    struct dirent *entrada;
+
+    char folderName[1024];
+    char * newFolder = "decompressedFork";
+    char * searchFile = "booksThread.huff";
+
+    char folderFileName[512];
+    int huffCount = 0; //Contador de huff
+
+    int processNumber = 2;
+
+    int inicio = 0;
+    int final = 50;
+
+    entradaHiloDes entradas[processNumber];
+
+    clock_gettime(CLOCK_MONOTONIC, &start);
+
+    while ((entrada = readdir(dir)) != NULL) {
+
+        if (!strcmp(entrada->d_name, ".") || !strcmp(entrada->d_name, "..")) {
+            continue;
+        }
+
+        if (entrada->d_type == DT_DIR) {
+            continue;
+        }
+        if (strstr(entrada->d_name, ".huff") != NULL && !strcmp(entrada->d_name, searchFile)) {
+            snprintf(folderName, sizeof(folderName), "%s/%s", selected_directoryAD, newFolder);
+            mkdir(folderName, 0777);
+            snprintf(folderFileName, sizeof(folderFileName), "%s/%s", selected_directoryAD, entrada->d_name);
+
+        
+            struct stat huffStat;
+            if (stat(folderFileName, &huffStat) == 0) {
+                record->compressedSize += huffStat.st_size / 1000.0;
+            } else {
+                perror("stat (.huff)");
+            }
+
+
+            int totalIndex = 0;
+            FileIndex * huffmanIndex = createHuffmanFileIndex(folderFileName, &totalIndex);
+            printf("TotalIndex %d\n", totalIndex);
+            printf("Index %s\n", folderFileName);
+
+
+            int mitad = totalIndex / 2;
+
+            entradas[0].inicio = 0;
+            entradas[0].final = mitad;
+            strcpy(entradas[0].folderFileName, folderFileName);
+            entradas[0].index = huffmanIndex;
+            strcpy(entradas[0].route, folderName);
+
+            entradas[1].inicio = mitad;
+            entradas[1].final = totalIndex;
+            strcpy(entradas[1].folderFileName, folderFileName);
+            entradas[1].index = huffmanIndex;
+            strcpy(entradas[1].route, folderName);  
+
+            pid_t pid1 = fork();
+            printf("Inicia compresión por subproceso \n");
+            if (pid1 < 0) {
+                perror("Error al crear el proceso 1");
+                closedir(dir);
+                free(huffmanIndex);
+                free(record);
+                return NULL;
+            }
+
+            if(pid1 == 0) {
+                huffmanToTextFork(entradas[0]);
+                exit(0);
+            }
+
+            pid_t pid2 = fork();
+
+            if (pid2 < 0) {
+                perror("Error al crear el proceso 2");
+                closedir(dir);
+                free(huffmanIndex);
+                free(record);
+                return NULL;
+            }
+
+            if(pid2 == 0) {
+                huffmanToTextFork(entradas[1]);
+                exit(0);
+            }
+
+
+            waitpid(pid1, NULL, 0);
+            waitpid(pid2, NULL, 0);
+
+
+            snprintf(healthP, sizeof(healthP), "%.2f", health * 100);
+            free(huffmanIndex);
             
             huffCount++;
         }
