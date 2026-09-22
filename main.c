@@ -140,10 +140,10 @@ static void on_compress_button_clicked(GtkButton *button, gpointer user_data) {
     if (selected_directory == NULL) {
         GtkWindow *parent_window = GTK_WINDOW(gtk_widget_get_root(GTK_WIDGET(button)));
 
-        GtkAlertDialog *alert = gtk_alert_dialog_new("%s", "Atención: No hay una carpeta seleccionada para comprimir.");
+        GtkAlertDialog *alert = gtk_alert_dialog_new("%s", "⚠️ No directory selected for compression.");
         gtk_alert_dialog_show(alert, parent_window);
         g_object_unref(alert);
-        
+
 
  
             return;
@@ -185,7 +185,12 @@ static void on_compress_button_clicked(GtkButton *button, gpointer user_data) {
 
 static void on_decompress_button_clicked(GtkButton *button, gpointer user_data) {
     if (selected_directory == NULL) {
-        g_print("Atención: No hay una carpeta seleccionada para descomprimir.\n");
+        GtkWindow *parent_window = GTK_WINDOW(gtk_widget_get_root(GTK_WIDGET(button)));
+
+        GtkAlertDialog *alert = gtk_alert_dialog_new("%s", "⚠️ No directory selected for decompression.");
+        gtk_alert_dialog_show(alert, parent_window);
+        g_object_unref(alert);
+
         return;
     }
     GtkWindow *parent_window = GTK_WINDOW(user_data);
