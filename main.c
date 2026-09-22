@@ -155,7 +155,7 @@ static void on_compress_button_clicked(GtkButton *button, gpointer user_data) {
 
         g_print("[Hijo %d] Iniciando compresión en: %s\n", getpid(), selected_directory);
         
-        compressAllFilesThreads(selected_directory);
+        compressAllFilesFork(selected_directory);
 
         g_print("[Hijo %d] Compresión completada.\n", getpid());
         

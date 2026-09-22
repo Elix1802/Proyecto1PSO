@@ -16,6 +16,9 @@
 
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/file.h>
+#include <sys/wait.h>
+
 #include <time.h>
 
 
@@ -553,7 +556,50 @@ StatRecord* compressAllFilesThreads(char *selected_directory) {
 
 
 //Fork functions
-void writtingFork(entradaHilo entrada) {
+
+void encryptFilesFork(char * route, FILE * huffmanFile) {
+    HashTableFreq *hashTableFreq = createHashTableFreq();
+    HeapPriorityQueue *heap = createHeapPriorityQueue();
+    Dictionary *dictionary = createDictionary();
+
+    int fd = fileno(huffmanFile); //Necesario para realizar un lock del archivo al escribir
+
+    readFile(route, hashTableFreq);
+    HashTableToHeap(hashTableFreq, heap);
+
+    convertHuffman(heap);
+    generateCodes(getNodes(heap)[0], dictionary, (char *)malloc(256), 0);
+
+    //En esta sección se bloquea el archivo huffman 
+    flock(fd, LOCK_EX);
+    fseek(huffmanFile, 0, SEEK_END);
+    writeFileEncrypted(route, hashTableFreq, dictionary, huffmanFile);
+    fflush(huffmanFile);
+    flock(fd, LOCK_UN); 
+    
+
+    destroyDictionary(dictionary);
+    destroyHashTableFreq(hashTableFreq);
+    destroyHeapPriorityQueue(heap);
+}
+
+/**
+ * Función writtingFork
+ * Descripción: Función que se encarga de escribir en el archivo.huff los diferentes libros
+ * recibe un struc entrada el cual posee los siguientes elementos
+ * -    int inicio: Indice de inicio en la carpeta de los libros
+ * -    int final; Indice del final de la carpeta de los libros
+ * -    struct dirent **nameList;: Struct encargado de las posiciones de la lista
+ * -    char huffFileNameRoute[1024]; Ruta del archivo huffman a crear
+ */
+
+void writtingFork(entradaProceso entrada) {
+    FILE * huffmanFile = fopen(entrada.huffFileNameRoute, "ab"); //Vamos a escribir en el amiguín
+    if (!huffmanFile) {
+        perror("Error al abrir el archivo contenedor .huff");
+        _exit(1);
+    }
+
     for (int i = entrada.inicio; i< entrada.final; i++) {
         struct dirent * document = entrada.nameList[i];
         if (strcmp(document->d_name, ".") != 0 && strcmp(document->d_name, "..") != 0) { 
@@ -561,12 +607,15 @@ void writtingFork(entradaHilo entrada) {
             snprintf(fullPath, sizeof(fullPath), "%s/%s", selected_directoryA, document->d_name);
             struct stat statbuf;
             if (stat(fullPath, &statbuf) == 0 && S_ISREG(statbuf.st_mode)) {
-                encryptFiles(fullPath, entrada.huffmanFile);
+                encryptFilesFork(fullPath, huffmanFile);
             }
         
         }
 
     }
+
+    fclose(huffmanFile);
+    _exit(0);
 }
  
 
@@ -588,7 +637,7 @@ StatRecord* compressAllFilesFork(char * selected_directory){
     int final = 50;
 
     double * resultChilds[processNumber];
-    entradaHilo entradas[processNumber];
+    entradaProceso entradas[processNumber];
 
 
     selected_directoryA = selected_directory;
@@ -621,7 +670,9 @@ StatRecord* compressAllFilesFork(char * selected_directory){
         free(record);
         return NULL;
     }
+    fclose(huffmanFile);
 
+    //Sección de nameList, aqui se conoce la cantidad de elementos en la capreta
     struct dirent **nameList;
     int n = scandir(selected_directoryA, &nameList, NULL, alphasort);
     if (n < 0) {
@@ -629,33 +680,53 @@ StatRecord* compressAllFilesFork(char * selected_directory){
         return NULL;
     }
 
-    for (int i = 0; i<processNumber; i++) {
-        entradas[i].inicio = inicio;
-        entradas[i].final = final;
-        entradas[i].nameList = nameList;
-        entradas[i].huffmanFile = huffmanFile;
-        inicio += 50;
-        final += 50;
-    }
+    int totalArchivos = n; 
+    int mitad = totalArchivos / 2;
 
-    pid_t pid = fork();
-    
-    if (pid < 0) {
-        perror("Error al crear el proceso");
+    entradas[0].inicio = 0;
+    entradas[0].final = mitad;
+    entradas[0].nameList = nameList;
+    strcpy(entradas[0].huffFileNameRoute, huffFileNameRoute);
+
+    entradas[1].inicio = mitad;
+    entradas[1].final = totalArchivos;
+    entradas[1].nameList = nameList;
+    strcpy(entradas[1].huffFileNameRoute, huffFileNameRoute);
+
+    //En esta sección se crean dos procesos hijos para dejar al padre nada más trabajr en la interfaz
+    pid_t pid1 = fork();
+    printf("Inicia compresión por subproceso \n");
+    if (pid1 < 0) {
+        perror("Error al crear el proceso 1");
         closedir(dir);
         free(record);
         return NULL;
     }
 
-    if(pid == 0) {
+    if(pid1 == 0) {
         writtingFork(entradas[0]);
     }
 
-    else {
+    pid_t pid2 = fork();
+
+    if (pid2 < 0) {
+        perror("Error al crear el proceso 2");
+        closedir(dir);
+        free(record);
+        return NULL;
+    }
+
+    if(pid2 == 0) {
         writtingFork(entradas[1]);
     }
-    
-    return NULL;
+
+    //Se esperan a los dos procesos creados
+
+    waitpid(pid1, NULL, 0);
+    waitpid(pid2, NULL, 0);
+
+    closedir(dir);
+    return record;
 }
 
 StatRecord* decompressAllFiles(char *selected_directory) {
@@ -775,7 +846,7 @@ StatRecord* decompressAllFiles(char *selected_directory) {
 }
 
 StatRecord* decompressAllFilesThread(char *selected_directory) {
-        StatRecord* record = (StatRecord*) malloc(sizeof(StatRecord));
+    StatRecord* record = (StatRecord*) malloc(sizeof(StatRecord));
     if (record == NULL) return NULL;
 
     record->decompAcceleration = 0.0;

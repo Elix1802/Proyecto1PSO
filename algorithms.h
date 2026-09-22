@@ -30,6 +30,13 @@ typedef struct {
     pthread_mutex_t *mutexFile;
 } entradaHilo;
 
+typedef struct {
+    int inicio;
+    int final; 
+    struct dirent **nameList;
+    char huffFileNameRoute[1024];
+} entradaProceso;
+
 
 typedef struct {
     const char *method;
