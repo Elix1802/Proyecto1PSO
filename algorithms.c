@@ -479,7 +479,7 @@ StatRecord* compressAllFilesThreads(char *selected_directory) {
     record->decompAcceleration = 0.0;
     record->decompress_time_s = 0.0;
     record->compress_time_s = 0.0;
-    record->method = "Basic";
+    record->method = "Threads";
     record->radius = 999.999;
     record->filesSize = 0.0;
     record->compressedSize = 0.0;
@@ -678,7 +678,7 @@ StatRecord* compressAllFilesFork(char * selected_directory){
     record->decompAcceleration = 0.0;
     record->decompress_time_s = 0.0;
     record->compress_time_s = 0.0;
-    record->method = "Basic";
+    record->method = "Fork";
     record->radius = 999.999;
     record->filesSize = 0.0;
     record->compressedSize = 0.0;
@@ -827,22 +827,24 @@ StatRecord* decompressAllFiles(char *selected_directory) {
 
     struct timespec start, end;
 
-    selected_directoryAD = selected_directory;
 
-    DIR * dir = opendir(selected_directoryAD);
+    char compressedDir[1024];
+    snprintf(compressedDir, sizeof(compressedDir), "%s/compressed", selected_directory);
+    DIR * dir = opendir(compressedDir);
 
     if (dir == NULL) {
-        selected_directory = "./compressed";
-        selected_directoryAD = selected_directory;
-        dir = opendir(selected_directoryAD);
+        strcpy(compressedDir, "./compressed");
+        dir = opendir(compressedDir);
         if (dir == NULL) {
             free(record);
             return NULL;
         }
     }
+    selected_directoryAD = compressedDir;
 
     char folderName[1024];
     char * newFolder = "decompressed";
+    char * searchFile = "books.huff";
 
 
     struct dirent *entrada;
@@ -862,7 +864,7 @@ StatRecord* decompressAllFiles(char *selected_directory) {
             continue;
         }
 
-        if (strstr(entrada->d_name, ".huff") != NULL) {
+        if (strstr(entrada->d_name, ".huff") != NULL && !strcmp(entrada->d_name, searchFile)) {
             snprintf(folderName, sizeof(folderName), "%s/%s", selected_directoryAD, newFolder);
             mkdir(folderName, 0777);
             snprintf(folderFileName, sizeof(folderFileName), "%s/%s", selected_directoryAD, entrada->d_name);
@@ -1043,7 +1045,7 @@ StatRecord* decompressAllFilesThread(char *selected_directory) {
     record->decompAcceleration = 0.0;
     record->decompress_time_s = 0.0;
     record->compress_time_s = 0.0;
-    record->method = "Basic";
+    record->method = "Threads";
     record->radius = 999.999;
     record->filesSize = 0.0;
     record->compressedSize = 0.0;
@@ -1053,19 +1055,22 @@ StatRecord* decompressAllFilesThread(char *selected_directory) {
 
     struct timespec start, end;
 
-    selected_directoryAD = selected_directory;
+    char compressedDir[1024];
+    snprintf(compressedDir, sizeof(compressedDir), "%s/compressed", selected_directory);
 
-    DIR * dir = opendir(selected_directoryAD);
+   
+
+    DIR * dir = opendir(compressedDir);
 
     if (dir == NULL) {
-        selected_directory = "./compressed";
-        selected_directoryAD = selected_directory;
-        dir = opendir(selected_directoryAD);
+        strcpy(compressedDir, "./compressed");
+        dir = opendir(compressedDir);
         if (dir == NULL) {
             free(record);
             return NULL;
         }
     }
+    selected_directoryAD = compressedDir;
 
     char folderName[1024];
     char * newFolder = "decompressedThread";
@@ -1115,6 +1120,12 @@ StatRecord* decompressAllFilesThread(char *selected_directory) {
             int totalIndex = 0;
             FileIndex * huffmanIndex = createHuffmanFileIndex(folderFileName, &totalIndex);
             g_print("Index: %d\n", totalIndex);
+
+            if (totalIndex <= 0) {
+                printf("No se encontraron archivos en el índice de Huffman.\n");
+                free(huffmanIndex);
+                continue;
+            }
             for (int i = 0; i<threadNumber; i++) {
                 entradas[i].inicio = inicio;
                 entradas[i].final = final;
@@ -1140,11 +1151,19 @@ StatRecord* decompressAllFilesThread(char *selected_directory) {
             }
         
             snprintf(healthP, sizeof(healthP), "%.2f", health * 100);
-            
+            free(huffmanIndex);
             huffCount++;
         }
     }
     closedir(dir);   
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    record->decompress_time_s = elapsedTime(start, end);
+
+    if (huffCount==0) {
+        free(record);
+        return NULL;
+    } 
+    return record;
 }
 
 void huffmanToTextFork(entradaHiloDes entrada){
@@ -1221,7 +1240,7 @@ StatRecord* decompressAllFilesFork(char *selected_directory) {
     record->decompAcceleration = 0.0;
     record->decompress_time_s = 0.0;
     record->compress_time_s = 0.0;
-    record->method = "Basic";
+    record->method = "Fork";
     record->radius = 999.999;
     record->filesSize = 0.0;
     record->compressedSize = 0.0;
@@ -1354,4 +1373,13 @@ StatRecord* decompressAllFilesFork(char *selected_directory) {
         }
     }
     closedir(dir);   
+  
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    record->decompress_time_s = elapsedTime(start, end);
+
+    if (huffCount==0) {
+        free(record);
+        return NULL;
+    } 
+    return record;
 }
