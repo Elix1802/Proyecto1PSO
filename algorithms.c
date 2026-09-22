@@ -420,6 +420,7 @@ void encryptFilesThread(char * route, FILE * huffmanFile, entradaHilo * entrada)
     convertHuffman(heap);
     generateCodes(getNodes(heap)[0], dictionary, (char *)malloc(256), 0);
 
+    //Lock al escribir en el huffmanFile
     pthread_mutex_lock(entrada->mutexFile);
     writeFileEncrypted(route, hashTableFreq, dictionary, huffmanFile);
     pthread_mutex_unlock(entrada->mutexFile);
@@ -429,7 +430,16 @@ void encryptFilesThread(char * route, FILE * huffmanFile, entradaHilo * entrada)
     destroyHeapPriorityQueue(heap);
 }
 
-
+/**
+ * Función writtingThread
+ * Descripción: Función que se encarga de escribir en el archivo.huff los diferentes libros
+ * recibe un struc entrada el cual posee los siguientes elementos
+ * -    int inicio: Indice de inicio en la carpeta de los libros
+ * -    int final; Indice del final de la carpeta de los libros
+ * -    struct dirent **nameList;: Struct encargado de las posiciones de la lista
+ * -    FILE * huffmanFile;: Archivo en donde se escribirá
+ *      pthread_mutex_t *mutexFile; Mutex para detener los hilos llegada la hora de la escritura
+ */
 
 void *writtingThread(void*arg) {
     entradaHilo * entrada = (entradaHilo*) arg;
