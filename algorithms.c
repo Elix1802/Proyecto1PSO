@@ -1231,19 +1231,21 @@ StatRecord* decompressAllFilesFork(char *selected_directory) {
 
     struct timespec start, end;
 
-    selected_directoryAD = selected_directory;
+    //Arreglo
+    char compressedDir[1024];
+    snprintf(compressedDir, sizeof(compressedDir), "%s/compressed", selected_directory);
 
-    DIR * dir = opendir(selected_directoryAD);
+    DIR * dir = opendir(compressedDir);
 
     if (dir == NULL) {
-        selected_directory = "./compressed";
-        selected_directoryAD = selected_directory;
-        dir = opendir(selected_directoryAD);
+        strcpy(compressedDir, "./compressed");
+        dir = opendir(compressedDir);
         if (dir == NULL) {
             free(record);
             return NULL;
         }
     }
+    selected_directoryAD = compressedDir;
 
     struct dirent *entrada;
 
