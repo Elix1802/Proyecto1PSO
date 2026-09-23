@@ -326,7 +326,6 @@ StatRecord* compressAllFiles(char *selected_directory) {
     record->decompress_time_s = 0.0;
     record->compress_time_s = 0.0;
     record->method = "Basic";
-    record->radius = 999.999;
     record->filesSize = 0.0;
     record->compressedSize = 0.0;
     record->healthPercentage = "0%";
@@ -418,7 +417,8 @@ StatRecord* compressAllFiles(char *selected_directory) {
         perror("stat (archivo comprimido)");
     }
 
-    printf("Tiempo de compresión de basic: %.2f ms\n", record->compress_time_s);
+    record->radius = (1 - record->compressedSize / record->filesSize) * 100.0;
+    printf("Radio de compresión: %.2f%%\n", record->radius);
     return record;
 }
 
@@ -558,6 +558,12 @@ StatRecord* compressAllFilesThreads(char *selected_directory) {
             continue;
         }
 
+        char fullPath[1024];
+        snprintf(fullPath, sizeof(fullPath), "%s/%s", selected_directoryA, entry->d_name);
+        struct stat fileStat;
+        if (stat(fullPath, &fileStat) == 0) {
+            record->filesSize += fileStat.st_size / 1000.0;
+        }
         printf("Index %d: %s\n", count, entry->d_name);
 
         nameList[count] = malloc(sizeof(struct dirent));
@@ -578,6 +584,7 @@ StatRecord* compressAllFilesThreads(char *selected_directory) {
         entradas[i].nameList = nameList;
         entradas[i].huffmanFile = huffmanFile;
         entradas[i].mutexFile = &huffmanFileMutex;
+        
         if(i<4){
 
             pthread_create(&threads[i], NULL, writtingThread, (void *)&entradas[i]);
@@ -589,7 +596,7 @@ StatRecord* compressAllFilesThreads(char *selected_directory) {
             inicio += limitG2;
             final += limitG2;
         }
-
+        
     }
     
     for(int i =0; i<threadNumber; i++) {
@@ -602,11 +609,20 @@ StatRecord* compressAllFilesThreads(char *selected_directory) {
     printf("Tiempo de compresión de threads: %.2f ms\n", record->compress_time_s);
 
     fclose(huffmanFile);
+
+    struct stat compressedStat;
+    if (stat(huffFileNameRoute, &compressedStat) == 0) {
+        record->compressedSize = compressedStat.st_size / 1000.0;
+    } else {
+        perror("stat (archivo comprimido thread)");
+    }
     for (int i = 0; i < count; i++) {
         free(nameList[i]);
     }
     free(nameList);
 
+    record->radius = (1 - record->compressedSize / record->filesSize) * 100.0;
+    printf("Radio de compresión: %.2f%%\n", record->radius);
 
     return record;
 }
@@ -762,8 +778,17 @@ StatRecord* compressAllFilesFork(char * selected_directory){
             memcpy(nameList[count], entry, sizeof(struct dirent));
             count++;
         }
+
+        char fullPath[1024];
+        snprintf(fullPath, sizeof(fullPath), "%s/%s", selected_directoryA, entry->d_name);
+        struct stat fileStat;
+        if (stat(fullPath, &fileStat) == 0) {
+            record->filesSize += fileStat.st_size / 1000.0;
+        }
+
     }
 
+    
     closedir(dir);
     int totalArchivos = count; 
     int mitad = totalArchivos / 2;
@@ -809,13 +834,27 @@ StatRecord* compressAllFilesFork(char * selected_directory){
 
     waitpid(pid1, NULL, 0);
     waitpid(pid2, NULL, 0);
+
+    clock_gettime(CLOCK_MONOTONIC, &end);
+
+    struct stat compressedStat;
+    if (stat(huffFileNameRoute, &compressedStat) == 0) {
+        record->compressedSize = compressedStat.st_size / 1000.0;
+    } else {
+        perror("stat (archivo comprimido fork)");
+    }
+
     for (int i = 0; i < count; i++) {
         free(nameList[i]);
     }
     free(nameList);
-    clock_gettime(CLOCK_MONOTONIC, &end);
+    
     record->compress_time_s = elapsedTime(start, end);
-    printf("Tiempo de compresión de fork: %.2f ms\n", record->compress_time_s);
+    
+    record->radius = (1 - record->compressedSize / record->filesSize) * 100.0;
+    printf("Tamaño de archivo comprimido: %.2f KB\n", record->compressedSize);
+    printf("Tamaño de archivos originales: %.2f KB\n", record->filesSize);
+    printf("Radio de compresión fork: %.2f%%\n", record->radius);
 
     return record;
 }
@@ -1170,10 +1209,35 @@ StatRecord* decompressAllFilesThread(char *selected_directory) {
     clock_gettime(CLOCK_MONOTONIC, &end);
     record->decompress_time_s = elapsedTime(start, end);
 
+    
+
     if (huffCount==0) {
         free(record);
         return NULL;
     } 
+
+    DIR *outDir = opendir(folderName);
+    if (outDir != NULL) {
+        struct dirent *outEntry;
+        struct stat outStat;
+        char outPath[1024];
+
+        while ((outEntry = readdir(outDir)) != NULL) {
+            if (!strcmp(outEntry->d_name, ".") || !strcmp(outEntry->d_name, "..")) continue;
+            if (outEntry->d_type == DT_DIR) continue;
+
+            snprintf(outPath, sizeof(outPath), "%s/%s", folderName, outEntry->d_name);
+            if (stat(outPath, &outStat) == 0) {
+                record->filesSize += outStat.st_size / 1000.0;
+            }
+        }
+        closedir(outDir);
+    }
+
+    record->radius = (1 - record->compressedSize / record->filesSize) * 100.0;
+    printf("Tamaño de archivo descomprimido: %.2f KB\n", record->filesSize);
+    printf("Tamaño de archivos comprimidos: %.2f KB\n", record->compressedSize);
+    printf("Radio de descompresión thread: %.2f%%\n", record->radius);
     return record;
 }
 
@@ -1388,9 +1452,31 @@ StatRecord* decompressAllFilesFork(char *selected_directory) {
     clock_gettime(CLOCK_MONOTONIC, &end);
     record->decompress_time_s = elapsedTime(start, end);
 
+    DIR *outDir = opendir(folderName);
+    if (outDir != NULL) {
+        struct dirent *outEntry;
+        struct stat outStat;
+        char outPath[1024];
+
+        while ((outEntry = readdir(outDir)) != NULL) {
+            if (!strcmp(outEntry->d_name, ".") || !strcmp(outEntry->d_name, "..")) continue;
+            if (outEntry->d_type == DT_DIR) continue;
+
+            snprintf(outPath, sizeof(outPath), "%s/%s", folderName, outEntry->d_name);
+            if (stat(outPath, &outStat) == 0) {
+                record->filesSize += outStat.st_size / 1000.0;
+            }
+        }
+        closedir(outDir);
+    }
+
     if (huffCount==0) {
         free(record);
         return NULL;
     } 
+    record->radius = (1 - record->compressedSize / record->filesSize) * 100.0;
+    printf("Tamaño de archivo descomprimido: %.2f KB\n", record->filesSize);
+    printf("Tamaño de archivos comprimidos: %.2f KB\n", record->compressedSize);
+    printf("Radio de descompresión fork: %.2f%%\n", record->radius);
     return record;
 }
