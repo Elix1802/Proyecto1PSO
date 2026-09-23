@@ -418,6 +418,7 @@ StatRecord* compressAllFiles(char *selected_directory) {
         perror("stat (archivo comprimido)");
     }
 
+    printf("Tiempo de compresión de basic: %.2f ms\n", record->compress_time_s);
     return record;
 }
 
@@ -517,6 +518,7 @@ StatRecord* compressAllFilesThreads(char *selected_directory) {
     char *fileName = "booksThread";
     snprintf(huffFileNameRoute, sizeof(huffFileNameRoute), "%s/%s.huff", folderName, fileName);
 
+    clock_gettime(CLOCK_MONOTONIC, &start);
     FILE * huffmanFile = fopen(huffFileNameRoute, "wb");
 
     if (huffmanFile == NULL) {
@@ -593,6 +595,11 @@ StatRecord* compressAllFilesThreads(char *selected_directory) {
     for(int i =0; i<threadNumber; i++) {
         pthread_join(threads[i], NULL);
     }
+
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    record->compress_time_s = elapsedTime(start, end);
+
+    printf("Tiempo de compresión de threads: %.2f ms\n", record->compress_time_s);
 
     fclose(huffmanFile);
     for (int i = 0; i < count; i++) {
@@ -690,6 +697,7 @@ StatRecord* compressAllFilesFork(char * selected_directory){
     entradaProceso entradas[processNumber];
 
 
+    clock_gettime(CLOCK_MONOTONIC, &start);
     selected_directoryA = selected_directory;
     DIR * dir = opendir(selected_directory);
 
@@ -805,6 +813,9 @@ StatRecord* compressAllFilesFork(char * selected_directory){
         free(nameList[i]);
     }
     free(nameList);
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    record->compress_time_s = elapsedTime(start, end);
+    printf("Tiempo de compresión de fork: %.2f ms\n", record->compress_time_s);
 
     return record;
 }
