@@ -86,7 +86,6 @@ void readFile(char *route, HashTableFreq *hashTableFreq)
     fclose(archivo);
     updateHashTableFreqNode(hashTableFreq, cant);
     // printHashTableFreq(hashTableFreq);
-    printf("\nCantidad de caracteres: %d\n", cant);
     return;
 }
 
@@ -246,7 +245,6 @@ float huffmanToText(char* route,  FILE *archivoHuffmanBinario)
     float files = 0.0;
     while (fread(&header, sizeof(binaryHeader), 1, archivoHuffmanBinario) == 1) {
             files ++;
-            printf("Extrayendo: %s (MD5: %s)\n", header.fileName, header.md5);
 
             char routeFile[1024];
             snprintf(routeFile, sizeof(routeFile), "%s/%s", route, header.fileName);
@@ -387,7 +385,6 @@ StatRecord* compressAllFiles(char *selected_directory) {
         clock_gettime(CLOCK_MONOTONIC, &start);
 
         snprintf(folderFileName, sizeof(folderFileName), "%s/%s", selected_directoryA, entrada->d_name);
-        printf("Archivo: %s\n", folderFileName);
 
         // Mide el tamaño del archivo original
         struct stat fileStat;
@@ -564,7 +561,6 @@ StatRecord* compressAllFilesThreads(char *selected_directory) {
         if (stat(fullPath, &fileStat) == 0) {
             record->filesSize += fileStat.st_size / 1000.0;
         }
-        printf("Index %d: %s\n", count, entry->d_name);
 
         nameList[count] = malloc(sizeof(struct dirent));
         if (nameList[count] != NULL) {
@@ -575,10 +571,7 @@ StatRecord* compressAllFilesThreads(char *selected_directory) {
     closedir(dir);
 
 
-    g_print("Cantidasd %d\n", count);
-
     for (int i = 0; i<threadNumber; i++) {
-        g_print("----------------------inicio: %d - fin: %d------------------------\n", inicio, final);
         entradas[i].inicio = inicio;
         entradas[i].final = final;
         entradas[i].nameList = nameList;
@@ -678,10 +671,8 @@ void writtingFork(entradaProceso entrada) {
         if (strcmp(document->d_name, ".") != 0 && strcmp(document->d_name, "..") != 0) { 
             char fullPath[1024];
             snprintf(fullPath, sizeof(fullPath), "%s/%s", selected_directoryA, document->d_name);
-            printf("FullPath %s \n", fullPath);
             struct stat statbuf;
             if (stat(fullPath, &statbuf) == 0 && S_ISREG(statbuf.st_mode)) {
-                printf("i= %d : %s", i, fullPath);
                 encryptFilesFork(fullPath, huffmanFile);
             }
         
@@ -1039,7 +1030,6 @@ void * huffmanToTextThread(void * arg){
         char routeFile[1024];
         snprintf(routeFile, sizeof(routeFile), "%s/%s", entrada->route, header->fileName);
 
-        printf("%s\n", routeFile);
         FILE *archivoSalida = fopen(routeFile, "wb");
         if (archivoSalida == NULL) {
             printf("Error al crear el archivo extraído: %s\n", routeFile);
@@ -1169,7 +1159,6 @@ StatRecord* decompressAllFilesThread(char *selected_directory) {
 
             int totalIndex = 0;
             FileIndex * huffmanIndex = createHuffmanFileIndex(folderFileName, &totalIndex);
-            g_print("Index: %d\n", totalIndex);
 
             if (totalIndex <= 0) {
                 printf("No se encontraron archivos en el índice de Huffman.\n");
@@ -1260,7 +1249,6 @@ void huffmanToTextFork(entradaHiloDes entrada){
         char routeFile[1024];
         snprintf(routeFile, sizeof(routeFile), "%s/%s", entrada.route, header->fileName);
 
-        printf("%s\n", routeFile);
         FILE *archivoSalida = fopen(routeFile, "wb");
         if (archivoSalida == NULL) {
             printf("Error al crear el archivo extraído: %s\n", routeFile);
@@ -1384,8 +1372,6 @@ StatRecord* decompressAllFilesFork(char *selected_directory) {
 
             int totalIndex = 0;
             FileIndex * huffmanIndex = createHuffmanFileIndex(folderFileName, &totalIndex);
-            printf("TotalIndex %d\n", totalIndex);
-            printf("Index %s\n", folderFileName);
             if (totalIndex <= 0) {
                 printf("No se encontraron archivos en el índice de Huffman.\n");
                 free(huffmanIndex);
@@ -1407,7 +1393,6 @@ StatRecord* decompressAllFilesFork(char *selected_directory) {
             strcpy(entradas[1].route, folderName);  
 
             pid_t pid1 = fork();
-            printf("Inicia compresión por subproceso \n");
             if (pid1 < 0) {
                 perror("Error al crear el proceso 1");
                 closedir(dir);
