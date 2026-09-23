@@ -762,8 +762,6 @@ StatRecord* compressAllFilesFork(char * selected_directory){
             continue;
         }
 
-        printf("Index %d: %s\n", count, entry->d_name);
-
         nameList[count] = malloc(sizeof(struct dirent));
         if (nameList[count] != NULL) {
             memcpy(nameList[count], entry, sizeof(struct dirent));
@@ -796,7 +794,6 @@ StatRecord* compressAllFilesFork(char * selected_directory){
 
     //En esta sección se crean dos procesos hijos para dejar al padre nada más trabajr en la interfaz
     pid_t pid1 = fork();
-    printf("Inicia compresión por subproceso \n");
     if (pid1 < 0) {
         perror("Error al crear el proceso 1");
         closedir(dir);
