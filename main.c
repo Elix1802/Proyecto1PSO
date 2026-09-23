@@ -161,6 +161,14 @@ static void on_compress_button_clicked(GtkButton *button, gpointer user_data) {
 
     if (pid == 0) {
 
+        g_print("[Hijo %d] Iniciando compresión Basica en: %s\n", getpid(), selected_directory);
+        compressAllFiles(selected_directory);
+        g_print("[Hijo %d] Compresión completada Basica.\n", getpid());
+
+        g_print("[Hijo %d] Iniciando compresión por hilos en: %s\n", getpid(), selected_directory);
+        compressAllFilesThreads(selected_directory);
+        g_print("[Hijo %d] Compresión por hilos completada.\n", getpid());
+
         g_print("[Hijo %d] Iniciando compresión en: %s\n", getpid(), selected_directory);
         
         compressAllFilesFork(selected_directory);
@@ -203,12 +211,19 @@ static void on_decompress_button_clicked(GtkButton *button, gpointer user_data) 
     }
 
     if (pid == 0) {
+        g_print("[Hijo %d] Iniciando descompresión Basica en: %s\n", getpid(), selected_directory);
+        decompressAllFiles(selected_directory);
+        g_print("[Hijo %d] Descompresión completada Basica.\n", getpid());
 
-        g_print("[Hijo %d] Iniciando Descompresión en: %s\n", getpid(), selected_directory);
+        g_print("[Hijo %d] Iniciando descompresión por hilos en: %s\n", getpid(), selected_directory);
+        decompressAllFilesThread(selected_directory);
+        g_print("[Hijo %d] Descompresión por hilos completada.\n", getpid());
+
+        g_print("[Hijo %d] Iniciando Descompresión Fork en: %s\n", getpid(), selected_directory);
         
         //StatRecord* record = decompressAllFiles(selected_directory);
         decompressAllFilesFork(selected_directory);
-        g_print("[Hijo %d] Descompresión completada.\n", getpid());
+        g_print("[Hijo %d] Descompresión Fork completada.\n", getpid());
 
         //g_print("[Salud %s].\n", record->healthPercentage);
         
