@@ -52,8 +52,8 @@ typedef struct {
 
 
 typedef struct {
-    const char *method;
-    const char *healthPercentage;
+    char *method;
+    char healthPercentage[10];
     double compress_time_s;
     double decompress_time_s;
     double compAcceleration;

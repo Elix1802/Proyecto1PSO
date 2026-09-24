@@ -44,7 +44,7 @@ double elapsedTime(struct timespec start, struct timespec end)
     }
 
     double elapsed_ns = (seconds * 1e9) + nanoseconds;
-    double elapsed_ms = elapsed_ns / 1e6;
+    double elapsed_ms = elapsed_ns / 1e9;
 
     return elapsed_ms;
 }
@@ -326,7 +326,7 @@ StatRecord* compressAllFiles(char *selected_directory) {
     record->method = "Basic";
     record->filesSize = 0.0;
     record->compressedSize = 0.0;
-    record->healthPercentage = "0%";
+    strcpy(record->healthPercentage, "0%");
 
     struct timespec start, end;
     
@@ -479,6 +479,7 @@ StatRecord* compressAllFilesThreads(char *selected_directory) {
     record->compress_time_s = 0.0;
     record->method = "Threads";
     record->radius = 999.999;
+    strcpy(record->healthPercentage, "0%");
     record->filesSize = 0.0;
     record->compressedSize = 0.0;
 
@@ -696,6 +697,7 @@ StatRecord* compressAllFilesFork(char * selected_directory){
     record->radius = 999.999;
     record->filesSize = 0.0;
     record->compressedSize = 0.0;
+    strcpy(record->healthPercentage, "0%");
 
     struct timespec start, end;
     int processNumber = 2;
@@ -859,9 +861,10 @@ StatRecord* decompressAllFiles(char *selected_directory) {
     record->radius = 999.999;
     record->filesSize = 0.0;
     record->compressedSize = 0.0;
+    strcpy(record->healthPercentage, "0%");
 
     float health = 0.0;
-    char healthP[10];
+    char healthP[10] = "0%";
 
     struct timespec start, end;
 
@@ -935,7 +938,8 @@ StatRecord* decompressAllFiles(char *selected_directory) {
 
     clock_gettime(CLOCK_MONOTONIC, &end);
     record->decompress_time_s = elapsedTime(start, end);
-    record->healthPercentage = healthP;
+    strncpy(record->healthPercentage, healthP, sizeof(record->healthPercentage) - 1);
+    record->healthPercentage[sizeof(record->healthPercentage) - 1] = '\0';
 
 
     if (i!=0) {
@@ -956,7 +960,8 @@ StatRecord* decompressAllFiles(char *selected_directory) {
         }
         closedir(outDir);
     }
-
+    if (record->filesSize > 0)
+    record->radius = (1 - record->compressedSize / record->filesSize) * 100.0;
     return record; 
     }
 
@@ -1086,9 +1091,10 @@ StatRecord* decompressAllFilesThread(char *selected_directory) {
     record->radius = 999.999;
     record->filesSize = 0.0;
     record->compressedSize = 0.0;
+    strcpy(record->healthPercentage, "0%");
 
     float health = 0.0;
-    char healthP[10];
+    char healthP[10] = "0%";
 
     struct timespec start, end;
 
@@ -1196,7 +1202,9 @@ StatRecord* decompressAllFilesThread(char *selected_directory) {
     record->decompress_time_s = elapsedTime(start, end);
 
     
-
+    strncpy(record->healthPercentage, healthP, sizeof(record->healthPercentage) - 1);
+    record->healthPercentage[sizeof(record->healthPercentage) - 1] = '\0';
+    
     if (huffCount==0) {
         free(record);
         return NULL;
@@ -1218,6 +1226,7 @@ StatRecord* decompressAllFilesThread(char *selected_directory) {
             }
         }
         closedir(outDir);
+
     }
 
     record->radius = (1 - record->compressedSize / record->filesSize) * 100.0;
@@ -1304,9 +1313,10 @@ StatRecord* decompressAllFilesFork(char *selected_directory) {
     record->radius = 999.999;
     record->filesSize = 0.0;
     record->compressedSize = 0.0;
+    strcpy(record->healthPercentage, "0%");
 
     float health = 0.0;
-    char healthP[10];
+    char healthP[10] = "0%";
 
     struct timespec start, end;
 
@@ -1452,6 +1462,8 @@ StatRecord* decompressAllFilesFork(char *selected_directory) {
         closedir(outDir);
     }
 
+    strncpy(record->healthPercentage, healthP, sizeof(record->healthPercentage) - 1);
+    record->healthPercentage[sizeof(record->healthPercentage) - 1] = '\0';
     if (huffCount==0) {
         free(record);
         return NULL;

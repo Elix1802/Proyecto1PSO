@@ -2,117 +2,92 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <string.h>
 
 #include "algorithms.h"
 
 static char *selected_directory = NULL;
 
+#define METHOD_COUNT 3
+
 typedef struct {
-	GtkWidget *loading_dialog;
-	pid_t child_pid;
-	guint pulse_source_id;
+    char method[32];
+    char healthPercentage[10];
+    double compress_time_s;
+    double decompress_time_s;
+    double compAcceleration;
+    double decompAcceleration;
+    double filesSize;
+    double compressedSize;
+    double radius;
+} StatRecordIPC;
+
+typedef struct {
+    GtkWidget *loading_dialog;
+    pid_t child_pid;
+    guint pulse_source_id;
+    int pipe_read_fd;
+    int op_type;
 } CompressionTaskData;
+
+static StatRecordIPC g_compStats[METHOD_COUNT];
+static StatRecordIPC g_decompStats[METHOD_COUNT];
+static gboolean g_hasComp = FALSE;
+static gboolean g_hasDecomp = FALSE;
+static GtkWidget *grid_stats_widget = NULL;
+
+static void render_stats_grid(void);
+
+static void toIPC(StatRecordIPC *dst, StatRecord *src) {
+    if (src == NULL) {
+        memset(dst, 0, sizeof(StatRecordIPC));
+        strncpy(dst->method, "N/A", sizeof(dst->method) - 1);
+        strncpy(dst->healthPercentage, "0%", sizeof(dst->healthPercentage) - 1);
+        return;
+    }
+    strncpy(dst->method, src->method, sizeof(dst->method) - 1);
+    dst->method[sizeof(dst->method) - 1] = '\0';
+    strncpy(dst->healthPercentage, src->healthPercentage, sizeof(dst->healthPercentage) - 1);
+    dst->healthPercentage[sizeof(dst->healthPercentage) - 1] = '\0';
+    dst->compress_time_s = src->compress_time_s;
+    dst->decompress_time_s = src->decompress_time_s;
+    dst->compAcceleration = src->compAcceleration;
+    dst->decompAcceleration = src->decompAcceleration;
+    dst->filesSize = src->filesSize;
+    dst->compressedSize = src->compressedSize;
+    dst->radius = src->radius;
+}
 
 static gboolean pulse_progress(gpointer user_data)
 {
-	GtkProgressBar *progress = GTK_PROGRESS_BAR(user_data);
-
-	gtk_progress_bar_pulse(progress);
-
-	return G_SOURCE_CONTINUE;
+    GtkProgressBar *progress = GTK_PROGRESS_BAR(user_data);
+    gtk_progress_bar_pulse(progress);
+    return G_SOURCE_CONTINUE;
 }
 
-
-
-static void on_child_finished(GPid pid, gint status, gpointer user_data)
-{
-	CompressionTaskData *task = (CompressionTaskData *)user_data;
-
-	if (WIFEXITED(status)) {
-		g_print(
-			"Proceso hijo [%d] finalizó con código: %d\n",
-			pid,
-			WEXITSTATUS(status)
-		);
-	} else {
-		g_printerr(
-			"Proceso hijo [%d] terminó de forma no esperada.\n",
-			pid
-		);
-	}
-
-	if (task->pulse_source_id != 0) {
-		g_source_remove(task->pulse_source_id);
-		task->pulse_source_id = 0;
-	}
-
-	if (GTK_IS_WIDGET(task->loading_dialog)) {
-		gtk_window_destroy(GTK_WINDOW(task->loading_dialog));
-	}
-
-	g_spawn_close_pid(pid);
-
-	g_free(task);
+static void clear_stats_grid(GtkGrid *grid) {
+    int row = 1;
+    GtkWidget *child;
+    while ((child = gtk_grid_get_child_at(grid, 0, row)) != NULL) {
+        for (int col = 0; col < 9; col++) {
+            GtkWidget *cell = gtk_grid_get_child_at(grid, col, row);
+            if (cell) gtk_grid_remove(grid, cell);
+        }
+        row++;
+    }
 }
-
-
-static GtkWidget* create_loading_dialog(GtkWindow *parent, int mode)
-{
-	GtkWidget *dialog = gtk_window_new();
-
-	gtk_window_set_title(GTK_WINDOW(dialog), "");
-	gtk_window_set_transient_for(GTK_WINDOW(dialog), parent);
-	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
-	gtk_window_set_default_size(GTK_WINDOW(dialog), 280, 120);
-	gtk_window_set_deletable(GTK_WINDOW(dialog), FALSE);
-
-	GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 12);
-
-	gtk_widget_set_margin_top(vbox, 20);
-	gtk_widget_set_margin_bottom(vbox, 20);
-	gtk_widget_set_margin_start(vbox, 20);
-	gtk_widget_set_margin_end(vbox, 20);
-
-	GtkWidget *label;
-
-	if (mode == 1) {
-		label = gtk_label_new("Compressing files, please wait...");
-	} else {
-		label = gtk_label_new("Uncompressing files, please wait...");
-	}
-
-	GtkWidget *progress = gtk_progress_bar_new();
-
-	gtk_progress_bar_set_show_text(
-		GTK_PROGRESS_BAR(progress),
-		TRUE
-	);
-
-	gtk_progress_bar_set_text(
-		GTK_PROGRESS_BAR(progress),
-		"Processing..."
-	);
-
-	gtk_box_append(GTK_BOX(vbox), label);
-	gtk_box_append(GTK_BOX(vbox), progress);
-
-	gtk_window_set_child(GTK_WINDOW(dialog), vbox);
-
-	return dialog;
-}
-
 
 static void add_stat_row(GtkGrid *grid, int row, const StatRecord *stat) {
     char str_comp[32], str_decomp[32], str_comp_accel[32];
     char str_decomp_accel[32], str_fsize[32], str_csize[32], str_rad[32];
 
-    snprintf(str_comp, sizeof(str_comp), "%.2f s", stat->compress_time_s);
-    snprintf(str_decomp, sizeof(str_decomp), "%.2f s", stat->decompress_time_s);
+    snprintf(str_comp, sizeof(str_comp), "%.4f s", stat->compress_time_s);
+    snprintf(str_decomp, sizeof(str_decomp), "%.4f s", stat->decompress_time_s);
     snprintf(str_comp_accel, sizeof(str_comp_accel), "%.2f %%", stat->compAcceleration);
     snprintf(str_decomp_accel, sizeof(str_decomp_accel), "%.2f %%", stat->decompAcceleration);
     snprintf(str_fsize, sizeof(str_fsize), "%.2f KB", stat->filesSize);
     snprintf(str_csize, sizeof(str_csize), "%.2f KB", stat->compressedSize);
-    snprintf(str_rad, sizeof(str_rad), "%.2f mm", stat->radius);
+    snprintf(str_rad, sizeof(str_rad), "%.2f %%", stat->radius);
 
     const char *values[] = {
         stat->method,
@@ -128,10 +103,8 @@ static void add_stat_row(GtkGrid *grid, int row, const StatRecord *stat) {
 
     for (int col = 0; col < 9; col++) {
         GtkWidget *label = gtk_label_new(values[col]);
-
         gtk_widget_set_halign(label, GTK_ALIGN_FILL);
         gtk_widget_set_valign(label, GTK_ALIGN_FILL);
-
         gtk_grid_attach(grid, label, col, row, 1, 1);
     }
 }
@@ -142,12 +115,151 @@ static void populate_stats_grid(GtkGrid *grid, const StatRecord records[], size_
     }
 }
 
+static void render_stats_grid(void) {
+    if (grid_stats_widget == NULL) return;
+
+    static const char *methodNames[METHOD_COUNT] = {"Basic", "Threads", "Fork"};
+    StatRecord merged[METHOD_COUNT];
+
+    double basicCompTime = g_hasComp ? g_compStats[0].compress_time_s : 0.0;
+    double basicDecompTime = g_hasDecomp ? g_decompStats[0].decompress_time_s : 0.0;
+
+    for (int i = 0; i < METHOD_COUNT; i++) {
+        memset(&merged[i], 0, sizeof(merged[i]));
+        const char *method = methodNames[i];
+        if (g_hasComp && g_compStats[i].method[0] != '\0') method = g_compStats[i].method;
+        else if (g_hasDecomp && g_decompStats[i].method[0] != '\0') method = g_decompStats[i].method;
+
+        merged[i].method = (char *)method;
+        strncpy(merged[i].healthPercentage, g_hasComp ? g_compStats[i].healthPercentage : (g_hasDecomp ? g_decompStats[i].healthPercentage : "0%"), sizeof(merged[i].healthPercentage) - 1);
+        merged[i].healthPercentage[sizeof(merged[i].healthPercentage) - 1];
+        
+        merged[i].compress_time_s = g_hasComp ? g_compStats[i].compress_time_s : 0.0;
+        merged[i].decompress_time_s = g_hasDecomp ? g_decompStats[i].decompress_time_s : 0.0;
+        merged[i].filesSize = g_hasComp ? g_compStats[i].filesSize : (g_hasDecomp ? g_decompStats[i].filesSize : 0.0);
+        merged[i].compressedSize = g_hasComp ? g_compStats[i].compressedSize : (g_hasDecomp ? g_decompStats[i].compressedSize : 0.0);
+        merged[i].radius = g_hasComp ? g_compStats[i].radius
+                 : (g_hasDecomp ? g_decompStats[i].radius : 0.0);
+
+        merged[i].compAcceleration = (g_hasComp && basicCompTime > 0.0 && merged[i].compress_time_s > 0.0)
+            ? (basicCompTime / merged[i].compress_time_s) * 100.0
+            : 0.0;
+
+        merged[i].decompAcceleration = (g_hasDecomp && basicDecompTime > 0.0 && merged[i].decompress_time_s > 0.0)
+            ? (basicDecompTime / merged[i].decompress_time_s) * 100.0
+            : 0.0;
+    }
+
+    clear_stats_grid(GTK_GRID(grid_stats_widget));
+    populate_stats_grid(GTK_GRID(grid_stats_widget), merged, METHOD_COUNT);
+}
+
+static void on_child_finished(GPid pid, gint status, gpointer user_data)
+{
+    CompressionTaskData *task = (CompressionTaskData *)user_data;
+
+    if (WIFEXITED(status)) {
+        g_print(
+            "Proceso hijo [%d] finalizó con código: %d\n",
+            pid,
+            WEXITSTATUS(status)
+        );
+    } else {
+        g_printerr(
+            "Proceso hijo [%d] terminó de forma no esperada.\n",
+            pid
+        );
+    }
+
+    StatRecordIPC ipcRecords[METHOD_COUNT];
+    ssize_t totalRead = 0;
+    ssize_t expected = sizeof(StatRecordIPC) * METHOD_COUNT;
+    char *buf = (char *)ipcRecords;
+
+    while (totalRead < expected) {
+        ssize_t n = read(task->pipe_read_fd, buf + totalRead, expected - totalRead);
+        if (n <= 0) break;
+        totalRead += n;
+    }
+    close(task->pipe_read_fd);
+
+    if (totalRead == expected) {
+        if (task->op_type == 1) {
+            memcpy(g_compStats, ipcRecords, sizeof(g_compStats));
+            g_hasComp = TRUE;
+        } else if (task->op_type == 2) {
+            memcpy(g_decompStats, ipcRecords, sizeof(g_decompStats));
+            g_hasDecomp = TRUE;
+        }
+        render_stats_grid();
+    } else {
+        g_printerr("No se pudieron leer las estadísticas del proceso hijo.\n");
+    }
+
+    if (task->pulse_source_id != 0) {
+        g_source_remove(task->pulse_source_id);
+        task->pulse_source_id = 0;
+    }
+
+    if (GTK_IS_WIDGET(task->loading_dialog)) {
+        gtk_window_destroy(GTK_WINDOW(task->loading_dialog));
+    }
+
+    g_spawn_close_pid(pid);
+
+    g_free(task);
+}
+
+static GtkWidget* create_loading_dialog(GtkWindow *parent, int mode)
+{
+    GtkWidget *dialog = gtk_window_new();
+
+    gtk_window_set_title(GTK_WINDOW(dialog), "");
+    gtk_window_set_transient_for(GTK_WINDOW(dialog), parent);
+    gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+    gtk_window_set_default_size(GTK_WINDOW(dialog), 280, 120);
+    gtk_window_set_deletable(GTK_WINDOW(dialog), FALSE);
+
+    GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 12);
+
+    gtk_widget_set_margin_top(vbox, 20);
+    gtk_widget_set_margin_bottom(vbox, 20);
+    gtk_widget_set_margin_start(vbox, 20);
+    gtk_widget_set_margin_end(vbox, 20);
+
+    GtkWidget *label;
+
+    if (mode == 1) {
+        label = gtk_label_new("Compressing files, please wait...");
+    } else {
+        label = gtk_label_new("Uncompressing files, please wait...");
+    }
+
+    GtkWidget *progress = gtk_progress_bar_new();
+
+    gtk_progress_bar_set_show_text(
+        GTK_PROGRESS_BAR(progress),
+        TRUE
+    );
+
+    gtk_progress_bar_set_text(
+        GTK_PROGRESS_BAR(progress),
+        "Processing..."
+    );
+
+    gtk_box_append(GTK_BOX(vbox), label);
+    gtk_box_append(GTK_BOX(vbox), progress);
+
+    gtk_window_set_child(GTK_WINDOW(dialog), vbox);
+
+    return dialog;
+}
+
 static void on_folder_dialog_response(GObject *source, GAsyncResult *result, gpointer user_data) {
     GtkFileDialog *dialog = GTK_FILE_DIALOG(source);
     GtkLabel *label = GTK_LABEL(user_data);
     GError *error = NULL;
 
-    // Se utiliza select_folder_finish para obtener la carpeta seleccionada
     GFile *folder = gtk_file_dialog_select_folder_finish(dialog, result, &error);
     if (folder) {
         if (selected_directory != NULL) {
@@ -174,8 +286,7 @@ static void on_open_button_clicked(GtkButton *button, gpointer user_data) {
 
     GtkFileDialog *dialog = gtk_file_dialog_new();
     gtk_file_dialog_set_title(dialog, "Seleccionar directorio");
-    
-    // Se utiliza select_folder para abrir el explorador en modo seleccion de directorio
+
     gtk_file_dialog_select_folder(dialog, parent_window, NULL, on_folder_dialog_response, label);
 }
 
@@ -187,39 +298,55 @@ static void on_compress_button_clicked(GtkButton *button, gpointer user_data) {
         gtk_alert_dialog_show(alert, parent_window);
         g_object_unref(alert);
 
-
- 
-            return;
-
+        return;
     }
 
     GtkWindow *parent_window = GTK_WINDOW(user_data);
+
+    int pipefd[2];
+    if (pipe(pipefd) == -1) {
+        g_printerr("Error al crear el pipe para comunicación entre procesos.\n");
+        return;
+    }
 
     pid_t pid = fork();
 
     if (pid < 0) {
         g_printerr("Error al crear el proceso hijo con fork()\n");
+        close(pipefd[0]);
+        close(pipefd[1]);
         return;
     }
 
     if (pid == 0) {
+        close(pipefd[0]);
+        StatRecordIPC ipcRecord;
 
         g_print("[Hijo %d] Iniciando compresión Basica en: %s\n", getpid(), selected_directory);
-        compressAllFiles(selected_directory);
+        StatRecord *r1 = compressAllFiles(selected_directory);
+        toIPC(&ipcRecord, r1);
+        write(pipefd[1], &ipcRecord, sizeof(StatRecordIPC));
+        if (r1) free(r1);
         g_print("[Hijo %d] Compresión completada Basica.\n", getpid());
 
         g_print("[Hijo %d] Iniciando compresión por hilos en: %s\n", getpid(), selected_directory);
-        compressAllFilesThreads(selected_directory);
+        StatRecord *r2 = compressAllFilesThreads(selected_directory);
+        toIPC(&ipcRecord, r2);
+        write(pipefd[1], &ipcRecord, sizeof(StatRecordIPC));
+        if (r2) free(r2);
         g_print("[Hijo %d] Compresión por hilos completada.\n", getpid());
 
-        g_print("[Hijo %d] Iniciando compresión en: %s\n", getpid(), selected_directory);
-        
-        compressAllFilesFork(selected_directory);
+        g_print("[Hijo %d] Iniciando compresión Fork en: %s\n", getpid(), selected_directory);
+        StatRecord *r3 = compressAllFilesFork(selected_directory);
+        toIPC(&ipcRecord, r3);
+        write(pipefd[1], &ipcRecord, sizeof(StatRecordIPC));
+        if (r3) free(r3);
+        g_print("[Hijo %d] Compresión Fork completada.\n", getpid());
 
-        g_print("[Hijo %d] Compresión completada.\n", getpid());
-        
+        close(pipefd[1]);
         _exit(0);
     } else {
+        close(pipefd[1]);
 
         GtkWidget *loading_dialog = create_loading_dialog(parent_window, 1);
 
@@ -227,6 +354,8 @@ static void on_compress_button_clicked(GtkButton *button, gpointer user_data) {
 
         task->loading_dialog = loading_dialog;
         task->child_pid = pid;
+        task->pipe_read_fd = pipefd[0];
+        task->op_type = 1;
 
         GtkWidget *content = gtk_window_get_child(
             GTK_WINDOW(loading_dialog)
@@ -258,33 +387,51 @@ static void on_decompress_button_clicked(GtkButton *button, gpointer user_data) 
     }
     GtkWindow *parent_window = GTK_WINDOW(user_data);
 
+    int pipefd[2];
+    if (pipe(pipefd) == -1) {
+        g_printerr("Error al crear el pipe\n");
+        return;
+    }
+
     pid_t pid = fork();
 
     if (pid < 0) {
         g_printerr("Error al crear el proceso hijo con fork()\n");
+        close(pipefd[0]);
+        close(pipefd[1]);
         return;
     }
 
     if (pid == 0) {
+        close(pipefd[0]);
+        StatRecordIPC ipcRecord;
+
         g_print("[Hijo %d] Iniciando descompresión Basica en: %s\n", getpid(), selected_directory);
-        decompressAllFiles(selected_directory);
+        StatRecord *r1 = decompressAllFiles(selected_directory);
+        toIPC(&ipcRecord, r1);
+        write(pipefd[1], &ipcRecord, sizeof(StatRecordIPC));
+        if (r1) free(r1);
         g_print("[Hijo %d] Descompresión completada Basica.\n", getpid());
 
         g_print("[Hijo %d] Iniciando descompresión por hilos en: %s\n", getpid(), selected_directory);
-        decompressAllFilesThread(selected_directory);
+        StatRecord *r2 = decompressAllFilesThread(selected_directory);
+        toIPC(&ipcRecord, r2);
+        write(pipefd[1], &ipcRecord, sizeof(StatRecordIPC));
+        if (r2) free(r2);
         g_print("[Hijo %d] Descompresión por hilos completada.\n", getpid());
 
         g_print("[Hijo %d] Iniciando Descompresión Fork en: %s\n", getpid(), selected_directory);
-        
-        //StatRecord* record = decompressAllFiles(selected_directory);
-        decompressAllFilesFork(selected_directory);
+        StatRecord *r3 = decompressAllFilesFork(selected_directory);
+        toIPC(&ipcRecord, r3);
+        write(pipefd[1], &ipcRecord, sizeof(StatRecordIPC));
+        if (r3) free(r3);
         g_print("[Hijo %d] Descompresión Fork completada.\n", getpid());
 
-        //g_print("[Salud %s].\n", record->healthPercentage);
-        
+        close(pipefd[1]);
         _exit(0);
 
     } else {
+        close(pipefd[1]);
 
         GtkWidget *loading_dialog = create_loading_dialog(parent_window, 2);
 
@@ -292,6 +439,8 @@ static void on_decompress_button_clicked(GtkButton *button, gpointer user_data) 
 
         task->loading_dialog = loading_dialog;
         task->child_pid = pid;
+        task->pipe_read_fd = pipefd[0];
+        task->op_type = 2;
 
         GtkWidget *content = gtk_window_get_child(
             GTK_WINDOW(loading_dialog)
@@ -358,6 +507,7 @@ static void activate(GtkApplication *app, gpointer user_data) {
     GObject *grid_stats = gtk_builder_get_object(builder, "gridStats");
     if (grid_stats) {
         gtk_widget_add_css_class(GTK_WIDGET(grid_stats), "stats-grid");
+        grid_stats_widget = GTK_WIDGET(grid_stats);
 
         for (int col = 0; col < 9; col++) {
             GtkWidget *header_label = gtk_grid_get_child_at(GTK_GRID(grid_stats), col, 0);
@@ -367,15 +517,6 @@ static void activate(GtkApplication *app, gpointer user_data) {
                 gtk_widget_set_valign(header_label, GTK_ALIGN_FILL);
             }
         }
-
-        StatRecord ejemploPrueba[] = {
-            {"Huffman", "98%", 1.45, 0.32, 2.40, 3.10, 1024.0, 450.5, 12.50},
-            {"Fork",    "95%", 0.88, 0.15, 3.10, 4.20, 2048.0, 810.0,  8.20},
-            {"Pthread", "80%", 0.25, 0.08, 1.15, 1.30,  512.0, 400.0,  4.00}
-        };
-
-        size_t count = sizeof(ejemploPrueba) / sizeof(ejemploPrueba[0]);
-        populate_stats_grid(GTK_GRID(grid_stats), ejemploPrueba, count);
     } else {
         g_printerr("No se encontro 'gridStats'\n");
     }
