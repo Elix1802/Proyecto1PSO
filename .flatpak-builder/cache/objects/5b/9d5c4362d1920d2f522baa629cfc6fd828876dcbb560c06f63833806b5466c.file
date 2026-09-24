@@ -1,0 +1,191 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<interface>
+  <requires lib="gtk" version="4.12"/>
+  <object class="GtkApplicationWindow" id="windowMain">
+    <property name="title">Compressor</property>
+    <property name="default-width">900</property>
+    <property name="default-height">450</property>
+    <property name="width-request">900</property>
+    <property name="height-request">450</property>
+    <child>
+      <object class="GtkBox">
+        <property name="margin-bottom">10</property>
+        <property name="margin-end">10</property>
+        <property name="margin-start">10</property>
+        <property name="margin-top">10</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">12</property>
+        
+        <child>
+          <object class="GtkBox">
+            <property name="margin-bottom">2</property>
+            <property name="spacing">16</property>
+            <child>
+              <object class="GtkButton" id="btnOpenFile">
+              <style>
+                  <class name="btnOpenFile"/>
+                </style>
+                <property name="label">📁 Select directory</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkLabel" id="lblDirectory">
+                <property name="label">No directory selected</property>
+              </object>
+            </child>
+          </object>
+        </child>
+
+        <child>
+          <object class="GtkSeparator">
+            <property name="orientation">horizontal</property>
+          </object>
+        </child>
+
+        <child>
+          <object class="GtkBox">
+            <property name="halign">start</property>
+            <property name="spacing">20</property>
+            <child>
+              <object class="GtkButton" id="btnCompress">
+                <property name="label">⬇️ Compress </property>
+                <style>
+                  <class name="btnCompress"/>
+                </style>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="btnDecompress">
+                <property name="halign">start</property>
+                <property name="label">⬆️ Decompress</property>
+                <style>
+                  <class name="btnDecompress"/>
+                </style>
+              </object>
+            </child>
+          </object>
+        </child>
+
+        <child>
+          <object class="GtkSeparator">
+            <property name="orientation">horizontal</property>
+          </object>
+        </child>
+
+        <child>
+          <object class="GtkBox">
+            <property name="orientation">vertical</property>
+            <child>
+              <object class="GtkExpander">
+                <property name="label">Statistics</property>
+                <property name="expanded">true</property>
+                <child>
+                  <object class="GtkScrolledWindow" id="scrolledWindowStats">
+                    <property name="hscrollbar-policy">automatic</property>
+                    <property name="vscrollbar-policy">never</property>
+                    <property name="overlay-scrolling">false</property>
+                    <property name="min-content-height">160</property>
+                    <property name="hexpand">true</property>
+                    <child>
+                      <object class="GtkGrid" id="gridStats">
+                        <property name="column-spacing">3</property>
+                        <property name="row-spacing">3</property>
+                        <property name="margin-bottom">8</property>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="label">Method</property>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="row">0</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="label">Health %</property>
+                            <layout>
+                              <property name="column">1</property>
+                              <property name="row">0</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="label">Compress Time</property>
+                            <layout>
+                              <property name="column">2</property>
+                              <property name="row">0</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="label">Comp. Acceleration %</property>
+                            <layout>
+                              <property name="column">4</property>
+                              <property name="row">0</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="label">Dec. Acceleration %</property>
+                            <layout>
+                              <property name="column">5</property>
+                              <property name="row">0</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="label">Decompress Time</property>
+                            <layout>
+                              <property name="column">3</property>
+                              <property name="column-span">1</property>
+                              <property name="row">0</property>
+                              <property name="row-span">1</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="label">Files Size</property>
+                            <layout>
+                              <property name="column">6</property>
+                              <property name="row">0</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="label">Compressed Size</property>
+                            <layout>
+                              <property name="column">7</property>
+                              <property name="row">0</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="label">Compression Radius</property>
+                            <layout>
+                              <property name="column">8</property>
+                              <property name="row">0</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <style>
+                          <class name="gridStats"/>
+                        </style>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>

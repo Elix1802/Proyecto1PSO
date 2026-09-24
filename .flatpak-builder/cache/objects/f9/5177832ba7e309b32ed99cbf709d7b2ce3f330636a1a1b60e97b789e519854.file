@@ -1,0 +1,5 @@
+[Runtime]
+name=com.groupc.Compressor.Debug
+
+[ExtensionOf]
+ref=app/com.groupc.Compressor/x86_64/master

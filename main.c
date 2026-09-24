@@ -9,6 +9,8 @@
 static char *selected_directory = NULL;
 
 #define METHOD_COUNT 3
+char *css_path;
+char *ui_path;
 
 typedef struct {
     char method[32];
@@ -460,16 +462,16 @@ static void on_decompress_button_clicked(GtkButton *button, gpointer user_data) 
     }
 }
 
-static void activate(GtkApplication *app, gpointer user_data) {
+static void activate(GtkApplication *app) {
     GtkCssProvider *provider = gtk_css_provider_new();
-    gtk_css_provider_load_from_path(provider, "Style.css");
+    gtk_css_provider_load_from_path(provider, css_path);
     gtk_style_context_add_provider_for_display(
         gdk_display_get_default(),
         GTK_STYLE_PROVIDER(provider),
         GTK_STYLE_PROVIDER_PRIORITY_APPLICATION
     );
 
-    GtkBuilder *builder = gtk_builder_new_from_file("compressor.ui");
+    GtkBuilder *builder = gtk_builder_new_from_file(ui_path);
     GObject *window = gtk_builder_get_object(builder, "windowMain");
 
     if (!window) {
@@ -529,9 +531,22 @@ static void activate(GtkApplication *app, gpointer user_data) {
 
 int main(int argc, char *argv[]) {
     GtkApplication *app = gtk_application_new(
-        "compressor.preview",
+        "com.groupc.Compressor",
         G_APPLICATION_DEFAULT_FLAGS
     );
+
+    if (g_file_test("/app/share/compressor/Style.css", G_FILE_TEST_EXISTS) &&
+    g_file_test("/app/share/compressor/compressor.ui", G_FILE_TEST_EXISTS)) {
+
+    css_path = "/app/share/compressor/Style.css";
+    ui_path = "/app/share/compressor/compressor.ui";
+
+    } else {
+
+        css_path = "Style.css";
+        ui_path = "compressor.ui";
+    }
+
     g_signal_connect(app, "activate", G_CALLBACK(activate), NULL);
     int status = g_application_run(G_APPLICATION(app), argc, argv);
 

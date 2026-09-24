@@ -350,7 +350,11 @@ StatRecord* compressAllFiles(char *selected_directory) {
 
     char huffFileNameRoute[1024]; // Nombre del archivo huff en el directorio actual
     char *fileName = "books";
-    snprintf(huffFileNameRoute, sizeof(huffFileNameRoute), "%s/%s.huff", folderName, fileName);
+    int written = snprintf(huffFileNameRoute, sizeof(huffFileNameRoute), "%s/%s.huff", folderName, fileName);
+    if (written < 0 || (size_t)written >= sizeof(huffFileNameRoute)) {
+        fprintf(stderr, "Error: path too long\n");
+        return NULL;
+    }
 
     FILE * huffmanFile = fopen(huffFileNameRoute, "wb");
 
@@ -488,7 +492,6 @@ StatRecord* compressAllFilesThreads(char *selected_directory) {
     int limitG1 = 12;
     int limitG2 = 13;
 
-    double * resultChilds[threadNumber];
     pthread_t threads[threadNumber];
     entradaHilo entradas[threadNumber];
     pthread_mutex_t huffmanFileMutex = PTHREAD_MUTEX_INITIALIZER;
@@ -514,7 +517,11 @@ StatRecord* compressAllFilesThreads(char *selected_directory) {
 
     char huffFileNameRoute[1024]; // Nombre del archivo huff en el directorio actual
     char *fileName = "booksThread";
-    snprintf(huffFileNameRoute, sizeof(huffFileNameRoute), "%s/%s.huff", folderName, fileName);
+    int written = snprintf(huffFileNameRoute, sizeof(huffFileNameRoute), "%s/%s.huff", folderName, fileName);
+    if (written < 0 || (size_t)written >= sizeof(huffFileNameRoute)) {
+        fprintf(stderr, "Error: path too long\n");
+        return NULL;
+    }
 
     clock_gettime(CLOCK_MONOTONIC, &start);
     FILE * huffmanFile = fopen(huffFileNameRoute, "wb");
@@ -537,8 +544,6 @@ StatRecord* compressAllFilesThreads(char *selected_directory) {
     //Variables que represetan por cual sección del arreglo de archivos vamos
     int inicio = 0;
     int final = limitG1;
-
-    char folderFileName[512]; // Nombre del documento actual en su directorio
 
     struct dirent *entry;
     int count = 0;
@@ -702,7 +707,6 @@ StatRecord* compressAllFilesFork(char * selected_directory){
     struct timespec start, end;
     int processNumber = 2;
 
-    double * resultChilds[processNumber];
     entradaProceso entradas[processNumber];
 
 
@@ -727,7 +731,11 @@ StatRecord* compressAllFilesFork(char * selected_directory){
 
     char huffFileNameRoute[1024]; // Nombre del archivo huff en el directorio actual
     char *fileName = "booksFork";
-    snprintf(huffFileNameRoute, sizeof(huffFileNameRoute), "%s/%s.huff", folderName, fileName);
+    int written = snprintf(huffFileNameRoute, sizeof(huffFileNameRoute), "%s/%s.huff", folderName, fileName);
+    if (written < 0 || (size_t)written >= sizeof(huffFileNameRoute)) {
+        fprintf(stderr, "Error: path too long\n");
+        return NULL;
+    }
     //Crear el archivo huff antes de los procesos hijos para que puedan escribir en él
     FILE * huffmanFile = fopen(huffFileNameRoute, "wb");
     if (huffmanFile == NULL) {
@@ -798,7 +806,6 @@ StatRecord* compressAllFilesFork(char * selected_directory){
     pid_t pid1 = fork();
     if (pid1 < 0) {
         perror("Error al crear el proceso 1");
-        closedir(dir);
         free(record);
         return NULL;
     }
@@ -811,7 +818,6 @@ StatRecord* compressAllFilesFork(char * selected_directory){
 
     if (pid2 < 0) {
         perror("Error al crear el proceso 2");
-        closedir(dir);
         free(record);
         return NULL;
     }
@@ -908,7 +914,11 @@ StatRecord* decompressAllFiles(char *selected_directory) {
         if (strstr(entrada->d_name, ".huff") != NULL && !strcmp(entrada->d_name, searchFile)) {
             snprintf(folderName, sizeof(folderName), "%s/%s", selected_directoryAD, newFolder);
             mkdir(folderName, 0777);
-            snprintf(folderFileName, sizeof(folderFileName), "%s/%s", selected_directoryAD, entrada->d_name);
+            int written = snprintf(folderFileName, sizeof(folderFileName), "%s/%s", selected_directoryAD, entrada->d_name);
+            if (written < 0 || (size_t)written >= sizeof(folderFileName)) {
+                fprintf(stderr, "Error: path too long\n");
+                return NULL;
+            }
 
         
             struct stat huffStat;
@@ -953,7 +963,12 @@ StatRecord* decompressAllFiles(char *selected_directory) {
             if (!strcmp(outEntry->d_name, ".") || !strcmp(outEntry->d_name, "..")) continue;
             if (outEntry->d_type == DT_DIR) continue;
 
-            snprintf(outPath, sizeof(outPath), "%s/%s", folderName, outEntry->d_name);
+            int written = snprintf(outPath, sizeof(outPath), "%s/%s", folderName, outEntry->d_name);
+            if (written < 0 || (size_t)written >= sizeof(outPath)) {
+                fprintf(stderr, "Error: path too long\n");
+                return NULL;
+            }
+            
             if (stat(outPath, &outStat) == 0) {
                 record->filesSize += outStat.st_size / 1000.0;
             }
@@ -1030,7 +1045,11 @@ void * huffmanToTextThread(void * arg){
         fseek(myFile, entrada->index[i].offsetData, SEEK_SET);
 
         char routeFile[1024];
-        snprintf(routeFile, sizeof(routeFile), "%s/%s", entrada->route, header->fileName);
+        int written = snprintf(routeFile, sizeof(routeFile), "%s/%s", entrada->route, header->fileName);
+        if (written < 0 || (size_t)written >= sizeof(entrada->route)) {
+            fprintf(stderr, "Error: path too long\n");
+            return NULL;
+        }
 
         FILE *archivoSalida = fopen(routeFile, "wb");
         if (archivoSalida == NULL) {
@@ -1220,7 +1239,11 @@ StatRecord* decompressAllFilesThread(char *selected_directory) {
             if (!strcmp(outEntry->d_name, ".") || !strcmp(outEntry->d_name, "..")) continue;
             if (outEntry->d_type == DT_DIR) continue;
 
-            snprintf(outPath, sizeof(outPath), "%s/%s", folderName, outEntry->d_name);
+            int written = snprintf(outPath, sizeof(outPath), "%s/%s", folderName, outEntry->d_name);
+            if (written < 0 || (size_t)written >= sizeof(outPath)) {
+                fprintf(stderr, "Error: path too long\n");
+                return NULL;
+            }
             if (stat(outPath, &outStat) == 0) {
                 record->filesSize += outStat.st_size / 1000.0;
             }
@@ -1253,7 +1276,11 @@ void huffmanToTextFork(entradaHiloDes entrada){
         fseek(myFile, entrada.index[i].offsetData, SEEK_SET);
 
         char routeFile[1024];
-        snprintf(routeFile, sizeof(routeFile), "%s/%s", entrada.route, header->fileName);
+        int written = snprintf(routeFile, sizeof(routeFile), "%s/%s", entrada.route, header->fileName);
+        if (written < 0 || (size_t)written >= sizeof(routeFile)) {
+                fprintf(stderr, "Error: path too long\n");
+                return;
+        }
 
         FILE *archivoSalida = fopen(routeFile, "wb");
         if (archivoSalida == NULL) {
@@ -1347,8 +1374,6 @@ StatRecord* decompressAllFilesFork(char *selected_directory) {
 
     int processNumber = 2;
 
-    int inicio = 0;
-    int final = 50;
 
     entradaHiloDes entradas[processNumber];
 
@@ -1454,7 +1479,11 @@ StatRecord* decompressAllFilesFork(char *selected_directory) {
             if (!strcmp(outEntry->d_name, ".") || !strcmp(outEntry->d_name, "..")) continue;
             if (outEntry->d_type == DT_DIR) continue;
 
-            snprintf(outPath, sizeof(outPath), "%s/%s", folderName, outEntry->d_name);
+            int written = snprintf(outPath, sizeof(outPath), "%s/%s", folderName, outEntry->d_name);
+            if (written < 0 || (size_t)written >= sizeof(outPath)) {
+                fprintf(stderr, "Error: path too long\n");
+                return NULL;
+            }
             if (stat(outPath, &outStat) == 0) {
                 record->filesSize += outStat.st_size / 1000.0;
             }

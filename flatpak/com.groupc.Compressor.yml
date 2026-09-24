@@ -1,0 +1,25 @@
+app-id: com.groupc.Compressor
+runtime: org.gnome.Platform
+runtime-version: "49"
+sdk: org.gnome.Sdk
+command: compressor
+
+finish-args:
+  - --share=ipc
+  - --socket=wayland
+  - --socket=x11
+  - --filesystem=home
+modules:
+  - name: compressor
+    buildsystem: simple
+
+    build-commands:
+      - rm -f compressor
+      - make
+      - install -Dm755 compressor /app/bin/compressor
+      - install -Dm644 compressor.ui /app/share/compressor/compressor.ui
+      - install -Dm644 Style.css /app/share/compressor/Style.css
+
+    sources:
+      - type: dir
+        path: ..
