@@ -8,55 +8,98 @@
 static char *selected_directory = NULL;
 
 typedef struct {
-    GtkWidget *loading_dialog;
-    pid_t child_pid;
+	GtkWidget *loading_dialog;
+	pid_t child_pid;
+	guint pulse_source_id;
 } CompressionTaskData;
 
-static void on_child_finished(GPid pid, gint status, gpointer user_data) {
-    CompressionTaskData *task = (CompressionTaskData *)user_data;
+static gboolean pulse_progress(gpointer user_data)
+{
+	GtkProgressBar *progress = GTK_PROGRESS_BAR(user_data);
 
-    if (WIFEXITED(status)) {
-        g_print("Proceso hijo [%d] finalizó con código: %d\n", pid, WEXITSTATUS(status));
-    } else {
-        g_printerr("Proceso hijo [%d] terminó de forma no esperada.\n", pid);
-    }
+	gtk_progress_bar_pulse(progress);
 
-    if (GTK_IS_WIDGET(task->loading_dialog)) {
-        gtk_window_destroy(GTK_WINDOW(task->loading_dialog));
-    }
-
-    g_spawn_close_pid(pid);
-    g_free(task);
+	return G_SOURCE_CONTINUE;
 }
 
-static GtkWidget* create_loading_dialog(GtkWindow *parent, int mode) {
-    GtkWidget *dialog = gtk_window_new();
-    gtk_window_set_title(GTK_WINDOW(dialog), "");
-    gtk_window_set_transient_for(GTK_WINDOW(dialog), parent);
-    gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
-    gtk_window_set_default_size(GTK_WINDOW(dialog), 280, 120);
-    gtk_window_set_deletable(GTK_WINDOW(dialog), FALSE); // Evita que la cierren manualmente
 
-    GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 12);
-    gtk_widget_set_margin_top(vbox, 20);
-    gtk_widget_set_margin_bottom(vbox, 20);
-    gtk_widget_set_margin_start(vbox, 20);
-    gtk_widget_set_margin_end(vbox, 20);
-    
-    GtkWidget *label;
-    if (mode == 1) label = gtk_label_new("Compressing files, please wait...");
-    else label = gtk_label_new("Uncompressing files, please wait...");
 
-    GtkWidget *spinner = gtk_spinner_new();
-    gtk_spinner_start(GTK_SPINNER(spinner));
+static void on_child_finished(GPid pid, gint status, gpointer user_data)
+{
+	CompressionTaskData *task = (CompressionTaskData *)user_data;
 
-    gtk_box_append(GTK_BOX(vbox), label);
-    gtk_box_append(GTK_BOX(vbox), spinner);
+	if (WIFEXITED(status)) {
+		g_print(
+			"Proceso hijo [%d] finalizó con código: %d\n",
+			pid,
+			WEXITSTATUS(status)
+		);
+	} else {
+		g_printerr(
+			"Proceso hijo [%d] terminó de forma no esperada.\n",
+			pid
+		);
+	}
 
-    gtk_window_set_child(GTK_WINDOW(dialog), vbox);
-    return dialog;
+	if (task->pulse_source_id != 0) {
+		g_source_remove(task->pulse_source_id);
+		task->pulse_source_id = 0;
+	}
+
+	if (GTK_IS_WIDGET(task->loading_dialog)) {
+		gtk_window_destroy(GTK_WINDOW(task->loading_dialog));
+	}
+
+	g_spawn_close_pid(pid);
+
+	g_free(task);
 }
 
+
+static GtkWidget* create_loading_dialog(GtkWindow *parent, int mode)
+{
+	GtkWidget *dialog = gtk_window_new();
+
+	gtk_window_set_title(GTK_WINDOW(dialog), "");
+	gtk_window_set_transient_for(GTK_WINDOW(dialog), parent);
+	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+	gtk_window_set_default_size(GTK_WINDOW(dialog), 280, 120);
+	gtk_window_set_deletable(GTK_WINDOW(dialog), FALSE);
+
+	GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 12);
+
+	gtk_widget_set_margin_top(vbox, 20);
+	gtk_widget_set_margin_bottom(vbox, 20);
+	gtk_widget_set_margin_start(vbox, 20);
+	gtk_widget_set_margin_end(vbox, 20);
+
+	GtkWidget *label;
+
+	if (mode == 1) {
+		label = gtk_label_new("Compressing files, please wait...");
+	} else {
+		label = gtk_label_new("Uncompressing files, please wait...");
+	}
+
+	GtkWidget *progress = gtk_progress_bar_new();
+
+	gtk_progress_bar_set_show_text(
+		GTK_PROGRESS_BAR(progress),
+		TRUE
+	);
+
+	gtk_progress_bar_set_text(
+		GTK_PROGRESS_BAR(progress),
+		"Processing..."
+	);
+
+	gtk_box_append(GTK_BOX(vbox), label);
+	gtk_box_append(GTK_BOX(vbox), progress);
+
+	gtk_window_set_child(GTK_WINDOW(dialog), vbox);
+
+	return dialog;
+}
 
 
 static void add_stat_row(GtkGrid *grid, int row, const StatRecord *stat) {
@@ -178,14 +221,26 @@ static void on_compress_button_clicked(GtkButton *button, gpointer user_data) {
         _exit(0);
     } else {
 
-        g_print("[Padre] Hijo lanzado con PID: %d. Mostrando spinner...\n", pid);
-
         GtkWidget *loading_dialog = create_loading_dialog(parent_window, 1);
-        gtk_window_present(GTK_WINDOW(loading_dialog));
 
         CompressionTaskData *task = g_new(CompressionTaskData, 1);
+
         task->loading_dialog = loading_dialog;
         task->child_pid = pid;
+
+        GtkWidget *content = gtk_window_get_child(
+            GTK_WINDOW(loading_dialog)
+        );
+
+        GtkWidget *progress = gtk_widget_get_last_child(content);
+
+        task->pulse_source_id = g_timeout_add(
+            100,
+            pulse_progress,
+            progress
+        );
+
+        gtk_window_present(GTK_WINDOW(loading_dialog));
 
         g_child_watch_add(pid, on_child_finished, task);
     }
@@ -231,14 +286,26 @@ static void on_decompress_button_clicked(GtkButton *button, gpointer user_data) 
 
     } else {
 
-        g_print("[Padre] Hijo lanzado con PID: %d. Mostrando spinner...\n", pid);
-
         GtkWidget *loading_dialog = create_loading_dialog(parent_window, 2);
-        gtk_window_present(GTK_WINDOW(loading_dialog));
 
         CompressionTaskData *task = g_new(CompressionTaskData, 1);
+
         task->loading_dialog = loading_dialog;
         task->child_pid = pid;
+
+        GtkWidget *content = gtk_window_get_child(
+            GTK_WINDOW(loading_dialog)
+        );
+
+        GtkWidget *progress = gtk_widget_get_last_child(content);
+
+        task->pulse_source_id = g_timeout_add(
+            100,
+            pulse_progress,
+            progress
+        );
+
+        gtk_window_present(GTK_WINDOW(loading_dialog));
 
         g_child_watch_add(pid, on_child_finished, task);
     }
