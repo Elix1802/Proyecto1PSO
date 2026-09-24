@@ -1,0 +1,17 @@
+[Application]
+name=com.groupc.Compressor
+runtime=org.gnome.Platform/x86_64/49
+sdk=org.gnome.Sdk/x86_64/49
+command=compressor
+
+[Context]
+shared=ipc;
+sockets=x11;wayland;
+
+[Extension com.groupc.Compressor.Debug]
+directory=lib/debug
+autodelete=true
+no-autodownload=true
+
+[Build]
+built-extensions=com.groupc.Compressor.Debug;

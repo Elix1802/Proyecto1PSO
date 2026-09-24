@@ -1,0 +1,5 @@
+[Runtime]
+name=com.eliecer.Compressor.Debug
+
+[ExtensionOf]
+ref=app/com.eliecer.Compressor/x86_64/master

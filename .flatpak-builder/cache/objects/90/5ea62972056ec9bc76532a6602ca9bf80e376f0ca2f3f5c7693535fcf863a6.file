@@ -1,0 +1,34 @@
+{
+  "id" : "com.groupc.Compressor",
+  "runtime" : "org.gnome.Platform",
+  "runtime-version" : "49",
+  "runtime-commit" : "d9a9425766accf8efe5660b6563bab7119c7155d25a90c16455d0cd33d603c35",
+  "sdk" : "org.gnome.Sdk",
+  "sdk-commit" : "39cc2c47a919b6df8452d01eda94e308162b0a344e1207f55d5ee90945c38bd8",
+  "command" : "compressor",
+  "modules" : [
+    {
+      "name" : "compressor",
+      "buildsystem" : "simple",
+      "sources" : [
+        {
+          "path" : "..",
+          "type" : "dir"
+        }
+      ],
+      "build-commands" : [
+        "rm -f compressor",
+        "make",
+        "install -Dm755 compressor /app/bin/compressor",
+        "install -Dm644 compressor.ui /app/share/compressor/compressor.ui",
+        "install -Dm644 Style.css /app/share/compressor/Style.css"
+      ]
+    }
+  ],
+  "finish-args" : [
+    "--share=ipc",
+    "--socket=wayland",
+    "--socket=x11"
+  ],
+  "source-date-epoch" : 1790211200
+}

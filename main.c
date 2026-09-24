@@ -313,14 +313,14 @@ static void on_decompress_button_clicked(GtkButton *button, gpointer user_data) 
 
 static void activate(GtkApplication *app, gpointer user_data) {
     GtkCssProvider *provider = gtk_css_provider_new();
-    gtk_css_provider_load_from_path(provider, "Style.css");
+    gtk_css_provider_load_from_path(provider, "/app/share/compressor/Style.css");
     gtk_style_context_add_provider_for_display(
         gdk_display_get_default(),
         GTK_STYLE_PROVIDER(provider),
         GTK_STYLE_PROVIDER_PRIORITY_APPLICATION
     );
 
-    GtkBuilder *builder = gtk_builder_new_from_file("compressor.ui");
+    GtkBuilder *builder = gtk_builder_new_from_file("/app/share/compressor/compressor.ui");
     GObject *window = gtk_builder_get_object(builder, "windowMain");
 
     if (!window) {
@@ -388,7 +388,7 @@ static void activate(GtkApplication *app, gpointer user_data) {
 
 int main(int argc, char *argv[]) {
     GtkApplication *app = gtk_application_new(
-        "compressor.preview",
+        "com.groupc.Compressor",
         G_APPLICATION_DEFAULT_FLAGS
     );
     g_signal_connect(app, "activate", G_CALLBACK(activate), NULL);

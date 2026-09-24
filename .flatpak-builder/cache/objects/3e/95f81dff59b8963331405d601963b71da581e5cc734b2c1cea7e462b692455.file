@@ -1,0 +1,17 @@
+[Application]
+name=com.eliecer.Compressor
+runtime=org.gnome.Platform/x86_64/49
+sdk=org.gnome.Sdk/x86_64/49
+command=compressor
+
+[Context]
+shared=ipc;
+sockets=x11;wayland;
+
+[Extension com.eliecer.Compressor.Debug]
+directory=lib/debug
+autodelete=true
+no-autodownload=true
+
+[Build]
+built-extensions=com.eliecer.Compressor.Debug;
