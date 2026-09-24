@@ -1026,7 +1026,7 @@ FileIndex * createHuffmanFileIndex(char * huffmanFilePath, int * totalFiles) {
     return index;
 }
 
-//Descompress thread
+//Decompress thread
 void * huffmanToTextThread(void * arg){
     entradaHiloDes * entrada = (entradaHiloDes*) arg;
 

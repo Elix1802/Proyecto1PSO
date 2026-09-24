@@ -162,11 +162,7 @@ static void on_child_finished(GPid pid, gint status, gpointer user_data)
     CompressionTaskData *task = (CompressionTaskData *)user_data;
 
     if (WIFEXITED(status)) {
-        g_print(
-            "Proceso hijo [%d] finalizó con código: %d\n",
-            pid,
-            WEXITSTATUS(status)
-        );
+
     } else {
         g_printerr(
             "Proceso hijo [%d] terminó de forma no esperada.\n",
@@ -235,7 +231,7 @@ static GtkWidget* create_loading_dialog(GtkWindow *parent, int mode)
     if (mode == 1) {
         label = gtk_label_new("Compressing files, please wait...");
     } else {
-        label = gtk_label_new("Uncompressing files, please wait...");
+        label = gtk_label_new("Decompressing files, please wait...");
     }
 
     GtkWidget *progress = gtk_progress_bar_new();
@@ -325,26 +321,25 @@ static void on_compress_button_clicked(GtkButton *button, gpointer user_data) {
         close(pipefd[0]);
         StatRecordIPC ipcRecord;
 
-        g_print("[Hijo %d] Iniciando compresión Basica en: %s\n", getpid(), selected_directory);
+        
         StatRecord *r1 = compressAllFiles(selected_directory);
         toIPC(&ipcRecord, r1);
         write(pipefd[1], &ipcRecord, sizeof(StatRecordIPC));
         if (r1) free(r1);
-        g_print("[Hijo %d] Compresión completada Basica.\n", getpid());
+        
 
-        g_print("[Hijo %d] Iniciando compresión por hilos en: %s\n", getpid(), selected_directory);
         StatRecord *r2 = compressAllFilesThreads(selected_directory);
         toIPC(&ipcRecord, r2);
         write(pipefd[1], &ipcRecord, sizeof(StatRecordIPC));
         if (r2) free(r2);
-        g_print("[Hijo %d] Compresión por hilos completada.\n", getpid());
+        
 
-        g_print("[Hijo %d] Iniciando compresión Fork en: %s\n", getpid(), selected_directory);
+        
         StatRecord *r3 = compressAllFilesFork(selected_directory);
         toIPC(&ipcRecord, r3);
         write(pipefd[1], &ipcRecord, sizeof(StatRecordIPC));
         if (r3) free(r3);
-        g_print("[Hijo %d] Compresión Fork completada.\n", getpid());
+
 
         close(pipefd[1]);
         _exit(0);
@@ -409,26 +404,26 @@ static void on_decompress_button_clicked(GtkButton *button, gpointer user_data) 
         close(pipefd[0]);
         StatRecordIPC ipcRecord;
 
-        g_print("[Hijo %d] Iniciando descompresión Basica en: %s\n", getpid(), selected_directory);
+        
         StatRecord *r1 = decompressAllFiles(selected_directory);
         toIPC(&ipcRecord, r1);
         write(pipefd[1], &ipcRecord, sizeof(StatRecordIPC));
         if (r1) free(r1);
-        g_print("[Hijo %d] Descompresión completada Basica.\n", getpid());
 
-        g_print("[Hijo %d] Iniciando descompresión por hilos en: %s\n", getpid(), selected_directory);
+
+
         StatRecord *r2 = decompressAllFilesThread(selected_directory);
         toIPC(&ipcRecord, r2);
         write(pipefd[1], &ipcRecord, sizeof(StatRecordIPC));
         if (r2) free(r2);
-        g_print("[Hijo %d] Descompresión por hilos completada.\n", getpid());
+        
 
-        g_print("[Hijo %d] Iniciando Descompresión Fork en: %s\n", getpid(), selected_directory);
+        
         StatRecord *r3 = decompressAllFilesFork(selected_directory);
         toIPC(&ipcRecord, r3);
         write(pipefd[1], &ipcRecord, sizeof(StatRecordIPC));
         if (r3) free(r3);
-        g_print("[Hijo %d] Descompresión Fork completada.\n", getpid());
+        
 
         close(pipefd[1]);
         _exit(0);
