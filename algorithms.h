@@ -41,6 +41,8 @@ typedef struct {
     char folderFileName[2048];
     FileIndex * index;
     char route[2048];
+    float *healthOut; 
+    int *countOut;
 } entradaHiloDes;
 
 typedef struct {

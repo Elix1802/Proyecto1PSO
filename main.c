@@ -133,8 +133,9 @@ static void render_stats_grid(void) {
         else if (g_hasDecomp && g_decompStats[i].method[0] != '\0') method = g_decompStats[i].method;
 
         merged[i].method = (char *)method;
-        strncpy(merged[i].healthPercentage, g_hasComp ? g_compStats[i].healthPercentage : (g_hasDecomp ? g_decompStats[i].healthPercentage : "0%"), sizeof(merged[i].healthPercentage) - 1);
-        merged[i].healthPercentage[sizeof(merged[i].healthPercentage) - 1];
+        const char *healthSrc = g_hasDecomp ? g_decompStats[i].healthPercentage : (g_hasComp ? g_compStats[i].healthPercentage : "0%");
+        strncpy(merged[i].healthPercentage, healthSrc, sizeof(merged[i].healthPercentage) - 1);
+        merged[i].healthPercentage[sizeof(merged[i].healthPercentage) - 1] = '\0';
         
         merged[i].compress_time_s = g_hasComp ? g_compStats[i].compress_time_s : 0.0;
         merged[i].decompress_time_s = g_hasDecomp ? g_decompStats[i].decompress_time_s : 0.0;

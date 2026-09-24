@@ -8,7 +8,7 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <gtk/gtk.h>
-
+#include <sys/mman.h>
 
 #include <string.h>
 #include "MD5/md5.h"
@@ -938,7 +938,7 @@ StatRecord* decompressAllFiles(char *selected_directory) {
 
             health = huffmanToText(folderName, archivoHuffmanBinario);
             
-            snprintf(healthP, sizeof(healthP), "%.2f", health * 100);
+            snprintf(healthP, sizeof(healthP), "%.2f%%", health * 100);
             
             i++;
         }
@@ -1094,7 +1094,8 @@ void * huffmanToTextThread(void * arg){
         }
         processedCount++;
     }
-
+    *(entrada->healthOut) = healthLocal;
+    *(entrada->countOut) = processedCount;
     fclose(myFile);
     return NULL;
 }
@@ -1187,7 +1188,13 @@ StatRecord* decompressAllFilesThread(char *selected_directory) {
                 free(huffmanIndex);
                 continue;
             }
+
+            float healthPerThread[threadNumber];
+            int countPerThread[threadNumber];
+
             for (int i = 0; i<threadNumber; i++) {
+                entradas[i].healthOut = &healthPerThread[i];
+                entradas[i].countOut = &countPerThread[i];
                 entradas[i].inicio = inicio;
                 entradas[i].final = final;
                 strcpy(entradas[i].folderFileName, folderFileName);
@@ -1210,8 +1217,16 @@ StatRecord* decompressAllFilesThread(char *selected_directory) {
             for(int i =0; i<threadNumber; i++) {
                 pthread_join(threads[i], NULL);
             }
+
+            float totalHealth = 0.0;
+            int totalFiles = 0;
+            for (int i = 0; i < threadNumber; i++) {
+                totalHealth += healthPerThread[i];
+                totalFiles += countPerThread[i];
+            }
+            health = (totalFiles > 0) ? (totalHealth / totalFiles) : 0.0;
         
-            snprintf(healthP, sizeof(healthP), "%.2f", health * 100);
+            snprintf(healthP, sizeof(healthP), "%.2f%%", health * 100);
             free(huffmanIndex);
             huffCount++;
         }
@@ -1324,6 +1339,8 @@ void huffmanToTextFork(entradaHiloDes entrada){
         }
         processedCount++;
     }
+    entrada.healthOut[0] = healthLocal;
+    entrada.countOut[0] = processedCount;
 
     fclose(myFile);
     
@@ -1412,17 +1429,33 @@ StatRecord* decompressAllFilesFork(char *selected_directory) {
 
             int mitad = totalIndex / 2;
 
+            float *sharedHealth = mmap(NULL, sizeof(float) * 2, PROT_READ | PROT_WRITE,
+                            MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+            int *sharedCount = mmap(NULL, sizeof(int) * 2, PROT_READ | PROT_WRITE,
+                                    MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+            if (sharedHealth == MAP_FAILED || sharedCount == MAP_FAILED) {
+                perror("mmap");
+                free(huffmanIndex);
+                continue;
+            }
+            sharedHealth[0] = sharedHealth[1] = 0.0;
+            sharedCount[0] = sharedCount[1] = 0;
+
             entradas[0].inicio = 0;
             entradas[0].final = mitad;
             strcpy(entradas[0].folderFileName, folderFileName);
             entradas[0].index = huffmanIndex;
             strcpy(entradas[0].route, folderName);
+            entradas[0].healthOut = &sharedHealth[0];
+            entradas[0].countOut = &sharedCount[0];
 
             entradas[1].inicio = mitad;
             entradas[1].final = totalIndex;
             strcpy(entradas[1].folderFileName, folderFileName);
             entradas[1].index = huffmanIndex;
             strcpy(entradas[1].route, folderName);  
+            entradas[1].healthOut = &sharedHealth[1];
+            entradas[1].countOut = &sharedCount[1];
 
             pid_t pid1 = fork();
             if (pid1 < 0) {
@@ -1457,8 +1490,15 @@ StatRecord* decompressAllFilesFork(char *selected_directory) {
             waitpid(pid1, NULL, 0);
             waitpid(pid2, NULL, 0);
 
+            float totalHealth = sharedHealth[0] + sharedHealth[1];
+            int totalFiles = sharedCount[0] + sharedCount[1];
+            health = (totalFiles > 0) ? (totalHealth / totalFiles) : 0.0;
+            snprintf(healthP, sizeof(healthP), "%.2f%%", health * 100);
 
-            snprintf(healthP, sizeof(healthP), "%.2f", health * 100);
+            munmap(sharedHealth, sizeof(float) * 2);
+            munmap(sharedCount, sizeof(int) * 2);
+
+            
             free(huffmanIndex);
             
             huffCount++;
