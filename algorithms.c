@@ -292,7 +292,7 @@ float huffmanToText(char* route,  FILE *archivoHuffmanBinario)
         }
 
         fclose(archivoHuffmanBinario);
-        printf("¡Proceso de descompresión finalizado exitosamente!\n");
+
 
     return health/files;
 }
@@ -419,7 +419,7 @@ StatRecord* compressAllFiles(char *selected_directory) {
     }
 
     record->radius = (1 - record->compressedSize / record->filesSize) * 100.0;
-    printf("Radio de compresión: %.2f%%\n", record->radius);
+
     return record;
 }
 
@@ -605,7 +605,7 @@ StatRecord* compressAllFilesThreads(char *selected_directory) {
     clock_gettime(CLOCK_MONOTONIC, &end);
     record->compress_time_s = elapsedTime(start, end);
 
-    printf("Tiempo de compresión de threads: %.2f ms\n", record->compress_time_s);
+    
 
     fclose(huffmanFile);
 
@@ -621,7 +621,7 @@ StatRecord* compressAllFilesThreads(char *selected_directory) {
     free(nameList);
 
     record->radius = (1 - record->compressedSize / record->filesSize) * 100.0;
-    printf("Radio de compresión: %.2f%%\n", record->radius);
+    
 
     return record;
 }
@@ -848,9 +848,7 @@ StatRecord* compressAllFilesFork(char * selected_directory){
     record->compress_time_s = elapsedTime(start, end);
     
     record->radius = (1 - record->compressedSize / record->filesSize) * 100.0;
-    printf("Tamaño de archivo comprimido: %.2f KB\n", record->compressedSize);
-    printf("Tamaño de archivos originales: %.2f KB\n", record->filesSize);
-    printf("Radio de compresión fork: %.2f%%\n", record->radius);
+
 
     return record;
 }
@@ -1268,9 +1266,7 @@ StatRecord* decompressAllFilesThread(char *selected_directory) {
     }
 
     record->radius = (1 - record->compressedSize / record->filesSize) * 100.0;
-    printf("Tamaño de archivo descomprimido: %.2f KB\n", record->filesSize);
-    printf("Tamaño de archivos comprimidos: %.2f KB\n", record->compressedSize);
-    printf("Radio de descompresión thread: %.2f%%\n", record->radius);
+
     return record;
 }
 
@@ -1538,8 +1534,5 @@ StatRecord* decompressAllFilesFork(char *selected_directory) {
         return NULL;
     } 
     record->radius = (1 - record->compressedSize / record->filesSize) * 100.0;
-    printf("Tamaño de archivo descomprimido: %.2f KB\n", record->filesSize);
-    printf("Tamaño de archivos comprimidos: %.2f KB\n", record->compressedSize);
-    printf("Radio de descompresión fork: %.2f%%\n", record->radius);
     return record;
 }
